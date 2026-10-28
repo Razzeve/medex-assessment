@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test": "npx tsx --test src/features/service-explorer/__tests__/*.test.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.105.0",
