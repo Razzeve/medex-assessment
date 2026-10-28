@@ -1,0 +1,240 @@
+import React, { useState } from "react";
+import Link from "next/link";
+import {
+  Tag,
+  ArrowRight,
+  Info,
+  X,
+  Truck,
+  Layers,
+} from "lucide-react";
+import { formatCurrency, formatSubtotals } from "../utils/currency";
+import {
+  useCartSubtotals,
+  useCartValidation,
+  useSplitPackages,
+  useTotalDeliveryFees,
+} from "../store/selectors";
+import { useCartStore } from "../store/useCartStore";
+import { calculateDiscount, validateCoupon } from "../utils/coupons";
+
+export function OrderSummary() {
+  const packages = useSplitPackages();
+  const subtotals = useCartSubtotals();
+  const deliveryFees = useTotalDeliveryFees();
+  const { hasUnavailable, hasUnpriced, canCheckoutAny } = useCartValidation();
+
+  const appliedCoupon = useCartStore((state) => state.appliedCoupon);
+  const applyCoupon = useCartStore((state) => state.applyCoupon);
+  const removeCoupon = useCartStore((state) => state.removeCoupon);
+
+  const [couponInput, setCouponInput] = useState("");
+  const [couponError, setCouponError] = useState<string | null>(null);
+
+  const subtotalEntries = formatSubtotals(subtotals);
+  const discounts = calculateDiscount(appliedCoupon, subtotals);
+
+  // Compute final totals per currency
+  const currencies = Array.from(
+    new Set([...Object.keys(subtotals), ...Object.keys(deliveryFees)])
+  );
+
+  const finalTotals: Record<string, number> = {};
+  for (const cur of currencies) {
+    const sub = subtotals[cur] || 0;
+    const fee = deliveryFees[cur] || 0;
+    const disc = discounts[cur] || 0;
+    finalTotals[cur] = Math.max(0, sub + fee - disc);
+  }
+
+  const handleApplyCoupon = (e: React.FormEvent) => {
+    e.preventDefault();
+    setCouponError(null);
+    const result = validateCoupon(couponInput);
+    if (!result.valid || !result.coupon) {
+      setCouponError(result.message);
+      return;
+    }
+    applyCoupon(result.coupon);
+    setCouponInput("");
+  };
+
+  return (
+    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sticky top-20 space-y-6">
+      {/* Header */}
+      <div>
+        <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center justify-between">
+          <span>Order Summary</span>
+          <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
+            <Layers className="h-3 w-3" />
+            {packages.length} Split Packages
+          </span>
+        </h3>
+        <p className="mt-1 text-xs text-slate-500">
+          Individual provider settlement breakdown
+        </p>
+      </div>
+
+      {/* Item Subtotals by Currency */}
+      <div className="space-y-3 border-t border-slate-100 pt-4">
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          Services Subtotal
+        </div>
+        {subtotalEntries.length > 0 ? (
+          <div className="space-y-2">
+            {subtotalEntries.map(({ currency, formatted }) => (
+              <div key={currency} className="flex items-center justify-between text-sm">
+                <span className="text-slate-600 font-medium">{currency} Services</span>
+                <span className="font-semibold text-slate-900">{formatted}</span>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-xs text-slate-400 italic">No priced services</div>
+        )}
+      </div>
+
+      {/* Fulfillment / Delivery Fees */}
+      <div className="space-y-2 border-t border-slate-100 pt-4">
+        <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          <span className="flex items-center gap-1.5">
+            <Truck className="h-3.5 w-3.5 text-slate-400" />
+            Fulfillment & Sample Dispatch
+          </span>
+        </div>
+        {currencies.map((cur) => {
+          const fee = deliveryFees[cur] ?? 0;
+          return (
+            <div key={cur} className="flex items-center justify-between text-sm">
+              <span className="text-slate-600">{cur} Fulfillment</span>
+              {fee > 0 ? (
+                <span className="font-semibold text-slate-900">
+                  {formatCurrency(fee, cur)}
+                </span>
+              ) : (
+                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                  Free
+                </span>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Discounts Breakdown */}
+      {appliedCoupon && (
+        <div className="space-y-2 border-t border-slate-100 pt-4">
+          <div className="flex items-center justify-between text-xs font-semibold text-teal-700 uppercase tracking-wider">
+            <span>Promo Discount ({appliedCoupon.code})</span>
+            <button
+              type="button"
+              onClick={removeCoupon}
+              className="text-slate-400 hover:text-rose-600 transition-colors"
+              title="Remove promo code"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          {Object.entries(discounts).map(([cur, amount]) => (
+            <div key={cur} className="flex items-center justify-between text-sm text-teal-700">
+              <span>{cur} Savings</span>
+              <span className="font-semibold">- {formatCurrency(amount, cur)}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Coupon Form */}
+      <div className="border-t border-slate-100 pt-4">
+        <form onSubmit={handleApplyCoupon} className="space-y-2">
+          <label htmlFor="coupon-code" className="text-xs font-semibold text-slate-700 flex items-center gap-1">
+            <Tag className="h-3.5 w-3.5 text-teal-600" />
+            Have a voucher or promotional code?
+          </label>
+          <div className="flex gap-2">
+            <input
+              id="coupon-code"
+              type="text"
+              value={couponInput}
+              onChange={(e) => setCouponInput(e.target.value)}
+              placeholder="e.g. MEDEX10"
+              className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 uppercase placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+            />
+            <button
+              type="submit"
+              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+            >
+              Apply
+            </button>
+          </div>
+          {couponError && (
+            <p className="text-[11px] text-rose-600 font-medium">{couponError}</p>
+          )}
+        </form>
+      </div>
+
+      {/* Final Settlement Total */}
+      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+        <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
+          Total Payable by Currency
+        </div>
+        <div className="space-y-1.5">
+          {currencies.map((cur) => {
+            const amount = finalTotals[cur] || 0;
+            return (
+              <div key={cur} className="flex items-center justify-between">
+                <span className="text-xs font-bold text-slate-700">{cur} Settlement:</span>
+                <span className="text-base font-extrabold text-slate-900">
+                  {formatCurrency(amount, cur)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+        <p className="text-[10px] text-slate-500 pt-1 leading-normal">
+          * Each provider is billed in their local currency. Amounts are not combined.
+        </p>
+      </div>
+
+      {/* Warnings & CTA */}
+      <div className="space-y-3">
+        {hasUnavailable && (
+          <p className="text-xs text-rose-600 font-medium">
+            Please remove discontinued items before checking out.
+          </p>
+        )}
+        {hasUnpriced && (
+          <p className="text-xs text-amber-700 font-medium">
+            Please select duration options for all wellness services.
+          </p>
+        )}
+
+        <Link
+          href={canCheckoutAny ? "/checkout" : "#"}
+          aria-disabled={!canCheckoutAny}
+          className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold shadow-md transition-all ${
+            canCheckoutAny
+              ? "bg-teal-600 text-white hover:bg-teal-700 shadow-teal-600/20"
+              : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
+          }`}
+        >
+          <span>Proceed to Multi-Provider Checkout</span>
+          <ArrowRight className="h-4 w-4" />
+        </Link>
+      </div>
+
+      {/* Currency Educational Callout */}
+      <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-3.5 text-xs text-teal-900 space-y-1.5">
+        <div className="flex items-center gap-1.5 font-bold text-teal-950">
+          <Info className="h-4 w-4 text-teal-600 shrink-0" />
+          <span>Why Separate Currency Subtotals?</span>
+        </div>
+        <p className="text-[11px] leading-relaxed text-teal-800">
+          MedEx routes orders directly to accredited medical facilities across Thailand (THB),
+          Nepal (NPR), and India (INR). To avoid opaque currency conversion spreads, each package is
+          settled directly with the provider in their licensed jurisdiction.
+        </p>
+      </div>
+    </div>
+  );
+}

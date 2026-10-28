@@ -4,8 +4,8 @@ import {
   calculateSingleOptionPrice,
   calculateServicePrice,
   formatPrice,
-} from '../utils/pricing.ts';
-import { RawService } from '../types/index.ts';
+} from '../utils/pricing';
+import { RawService } from '../types/index';
 
 test('Pricing - Standard percentage discount and percentage service charge', () => {
   // Executive Health Check (Male): price = 6200, discount = 10%, serviceCharge = 7%
