@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import {
   Star,
   Home,
@@ -194,13 +195,13 @@ export function ServiceCard({
         </div>
 
         <div className={`mt-2 ${isList ? 'md:mt-2' : ''}`}>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition-colors focus:ring-2 focus:ring-teal-500/30"
-          >
-            <CheckCircle2 className="h-3.5 w-3.5" />
-            Book Service
-          </button>
+          <Link
+              href="/cart"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-teal-600 px-3.5 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition-colors focus:ring-2 focus:ring-teal-500/30"
+            >
+              <CheckCircle2 className="h-3.5 w-3.5" />
+              Book Service
+            </Link>
         </div>
       </div>
     </div>
