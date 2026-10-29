@@ -39,3 +39,4 @@ test("Coupons - Rejects invalid promo code with helpful error", () => {
   assert.equal(result.valid, false);
   assert.match(result.message, /invalid or expired/);
 });
+

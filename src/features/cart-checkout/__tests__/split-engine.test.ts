@@ -157,3 +157,4 @@ test("Split Engine - Delivery fee calculations and free tier thresholds", () => 
   const feesClinic = calculateDeliveryFees("package", { THB: 15000 });
   assert.equal(feesClinic["THB"], 0);
 });
+

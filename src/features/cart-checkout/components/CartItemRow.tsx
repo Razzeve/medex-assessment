@@ -190,3 +190,4 @@ export function CartItemRow({ item }: CartItemRowProps) {
     </div>
   );
 }
+

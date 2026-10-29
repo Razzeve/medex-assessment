@@ -33,3 +33,4 @@ test("Checkout Idempotency - Same key returns original order without duplication
   assert.equal(retrievedOrder.orderId, "MDX-LAB-TEST-001");
   assert.equal(retrievedOrder.status, "paid");
 });
+

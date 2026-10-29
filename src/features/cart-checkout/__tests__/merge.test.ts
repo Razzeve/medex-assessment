@@ -71,3 +71,4 @@ test("Guest Cart Merge - Handles all 4 dataset overlap scenarios accurately", ()
   assert.ok(discontinuedChange);
   assert.equal(discontinuedChange.type, "discontinued_item");
 });
+

@@ -252,3 +252,4 @@ export function normalizeServerCart(cart: ServerCartResponse): ServerCartRespons
     totalItems,
   };
 }
+

@@ -166,3 +166,4 @@ export function saveOrder(order: CheckoutOrder): void {
     idempotencyStore.set(order.idempotencyKey, order.orderId);
   }
 }
+

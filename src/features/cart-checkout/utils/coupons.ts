@@ -70,3 +70,4 @@ export function calculateDiscount(
 
   return discounts;
 }
+

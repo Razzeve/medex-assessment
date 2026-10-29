@@ -49,3 +49,4 @@ export function formatSubtotals(subtotals: Record<string, number>): { currency: 
 export function addMoney(a: number, b: number): number {
   return Math.round((a + b) * 100) / 100;
 }
+
