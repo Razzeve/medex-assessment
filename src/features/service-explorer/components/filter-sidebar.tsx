@@ -4,16 +4,8 @@ import { useState, useMemo } from 'react';
 import {
   Filter,
   RotateCcw,
-  ChevronDown,
-  ChevronRight,
   Search,
-  Check,
-  MapPin,
-  Building2,
-  DollarSign,
   Home,
-  Layers,
-  Sparkles,
 } from 'lucide-react';
 import {
   Category,
@@ -74,7 +66,7 @@ export function FilterSidebar({
   onToggleTestAtHome,
   onResetFilters,
   hasActiveFilters,
-  className = '',
+  className = 'sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pr-2 custom-scrollbar',
 }: FilterSidebarProps) {
   // Provider search within sidebar
   const [providerSearch, setProviderSearch] = useState('');
@@ -86,11 +78,6 @@ export function FilterSidebar({
   const [maxPriceInput, setMaxPriceInput] = useState(
     filters.maxPrice !== null ? filters.maxPrice.toString() : ''
   );
-
-  // Active category object
-  const activeCategory = useMemo(() => {
-    return categories.find((c) => c.id === filters.categoryId);
-  }, [categories, filters.categoryId]);
 
   // Filtered providers for provider multi-select search
   const filteredProviders = useMemo(() => {
@@ -138,26 +125,36 @@ export function FilterSidebar({
     );
   };
 
+  const handleResetAll = () => {
+    setMinPriceInput('');
+    setMaxPriceInput('');
+    setProviderSearch('');
+    onResetFilters();
+  };
+
   return (
     <aside
       aria-label="Service Catalog Filters"
       className={`flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs ${className}`}
     >
-      {/* Top Header with Reset */}
-      <div className="flex items-center justify-between border-b border-slate-100 pb-3">
+      {/* Top Header with Prominent Reset All Filters */}
+      <div className="sticky top-0 z-20 -mx-5 -mt-5 bg-white px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
           <Filter className="h-4 w-4 text-teal-600" />
           <span>Faceted Filters</span>
         </div>
-        {hasActiveFilters && (
+        {hasActiveFilters ? (
           <button
             type="button"
-            onClick={onResetFilters}
-            className="flex items-center gap-1 text-xs font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+            onClick={handleResetAll}
+            className="flex items-center gap-1.5 rounded-lg bg-teal-50 px-2.5 py-1.5 text-xs font-bold text-teal-700 hover:bg-teal-100 hover:text-teal-800 transition-all shadow-2xs cursor-pointer focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            title="Cleanses all search, location, currency, category, and price filters back to default"
           >
-            <RotateCcw className="h-3 w-3" />
-            <span>Reset All</span>
+            <RotateCcw className="h-3.5 w-3.5" />
+            <span>Reset All Filters</span>
           </button>
+        ) : (
+          <span className="text-[11px] font-medium text-slate-400">All filters default</span>
         )}
       </div>
 
@@ -187,7 +184,7 @@ export function FilterSidebar({
                     checked={isChecked}
                     disabled={isDisabled}
                     onChange={() => onToggleType(type)}
-                    className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+                    className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
                   />
                   <span>{label}</span>
                 </div>
@@ -216,14 +213,14 @@ export function FilterSidebar({
             <button
               type="button"
               onClick={() => onSetCategory(null)}
-              className="text-[11px] font-medium text-teal-600 hover:underline"
+              className="text-[11px] font-medium text-teal-600 hover:underline cursor-pointer"
             >
               Clear
             </button>
           )}
         </div>
 
-        <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1">
+        <div className="max-h-56 space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
           {categories
             .filter((c) => c.status === true)
             .map((cat) => {
@@ -242,7 +239,7 @@ export function FilterSidebar({
                         ? 'bg-teal-50 text-teal-800 font-semibold ring-1 ring-teal-600/20'
                         : isDisabled
                         ? 'cursor-not-allowed opacity-40 text-slate-400'
-                        : 'text-slate-700 hover:bg-slate-50'
+                        : 'text-slate-700 hover:bg-slate-50 cursor-pointer'
                     }`}
                   >
                     <span className="truncate pr-2">{getCategoryDisplayTitle(cat)}</span>
@@ -278,7 +275,7 @@ export function FilterSidebar({
                                 ? 'bg-teal-600 text-white font-semibold shadow-xs'
                                 : isSubDisabled
                                 ? 'cursor-not-allowed opacity-40 text-slate-400'
-                                : 'text-slate-600 hover:bg-slate-100'
+                                : 'text-slate-600 hover:bg-slate-100 cursor-pointer'
                             }`}
                           >
                             <span className="truncate">{sub.title}</span>
@@ -304,37 +301,59 @@ export function FilterSidebar({
 
       {/* 3. Location (Country & City) */}
       <section className="border-b border-slate-100 pb-5">
-        <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
-          Location
-        </h3>
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
+            Location
+          </h3>
+          {(filters.country || filters.city || (filters.currency !== 'ALL' && COUNTRIES.some(c => c.currency === filters.currency))) && (
+            <button
+              type="button"
+              onClick={() => onSetLocation(null, null)}
+              className="text-[11px] font-medium text-teal-600 hover:underline cursor-pointer"
+            >
+              Reset Location
+            </button>
+          )}
+        </div>
 
         {/* Country Selector */}
-        <div className="grid grid-cols-3 gap-1 mb-3">
+        <div className="grid grid-cols-3 gap-1.5 mb-2.5">
           {COUNTRIES.map((c) => {
-            const isCountryActive = filters.country === c.name;
+            const isCountryActive =
+              filters.country === c.name ||
+              (!filters.country && filters.currency === c.currency);
             const countryCount = facets.countries[c.name] || 0;
             const isDisabled = countryCount === 0 && !isCountryActive;
+
+            const disabledReason = isDisabled
+              ? filters.currency !== 'ALL' && filters.currency !== c.currency
+                ? `Filtered out by active currency (${filters.currency}). Reset or switch currency to view ${c.name}.`
+                : filters.city
+                ? `Filtered out by active city filter (${filters.city}).`
+                : 'No services match active filters.'
+              : undefined;
 
             return (
               <button
                 key={c.name}
                 type="button"
                 disabled={isDisabled}
+                title={disabledReason || (isCountryActive ? `Click to deselect ${c.name}` : `Filter by ${c.name}`)}
                 onClick={() =>
                   onSetLocation(isCountryActive ? null : c.name, null)
                 }
-                className={`rounded-lg py-1.5 px-2 text-center text-xs font-medium transition-all ${
+                className={`rounded-lg py-2 px-1 text-center text-xs font-medium transition-all ${
                   isCountryActive
-                    ? 'bg-teal-600 text-white shadow-xs font-semibold'
+                    ? 'bg-teal-600 text-white shadow-xs font-semibold ring-2 ring-teal-600/30'
                     : isDisabled
                     ? 'opacity-40 cursor-not-allowed bg-slate-50 text-slate-400 border border-slate-200'
-                    : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100'
+                    : 'border border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100 hover:border-slate-300 cursor-pointer'
                 }`}
               >
-                <div>{c.name}</div>
+                <div className="truncate font-semibold">{c.name}</div>
                 <div
-                  className={`text-[10px] ${
-                    isCountryActive ? 'text-teal-100' : 'text-slate-400'
+                  className={`text-[10px] mt-0.5 ${
+                    isCountryActive ? 'text-teal-100 font-semibold' : 'text-slate-400'
                   }`}
                 >
                   ({countryCount})
@@ -343,6 +362,26 @@ export function FilterSidebar({
             );
           })}
         </div>
+
+        {/* Currency Mismatch Clarification Banner */}
+        {filters.currency !== 'ALL' &&
+          COUNTRIES.some(
+            (c) => c.currency !== filters.currency && (facets.countries[c.name] || 0) === 0
+          ) && (
+            <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50/90 p-2 text-[11px] text-amber-800 flex items-start gap-1.5">
+              <span className="shrink-0 font-bold">ℹ</span>
+              <span>
+                Locations with (0) are hidden by the active currency filter ({filters.currency}).{' '}
+                <button
+                  type="button"
+                  onClick={() => onSetLocation(null, null)}
+                  className="font-semibold underline hover:text-amber-950 inline cursor-pointer"
+                >
+                  Clear to see all countries
+                </button>
+              </span>
+            </div>
+          )}
 
         {/* City Filter */}
         {availableCities.length > 0 && (
@@ -372,7 +411,7 @@ export function FilterSidebar({
                         ? 'bg-teal-600 text-white shadow-xs font-semibold'
                         : isDisabled
                         ? 'opacity-40 cursor-not-allowed bg-slate-100 text-slate-400'
-                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                        : 'border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 cursor-pointer'
                     }`}
                   >
                     <span>{city}</span>
@@ -405,7 +444,7 @@ export function FilterSidebar({
                 setMaxPriceInput('');
                 onSetPriceRange(null, null);
               }}
-              className="text-[11px] font-medium text-teal-600 hover:underline"
+              className="text-[11px] font-medium text-teal-600 hover:underline cursor-pointer"
             >
               Clear Price
             </button>
@@ -425,7 +464,7 @@ export function FilterSidebar({
               onClick={() =>
                 onSetPriceRange(filters.minPrice, filters.maxPrice, curr)
               }
-              className={`flex-1 rounded-md py-1 text-center transition-colors ${
+              className={`flex-1 rounded-md py-1 text-center transition-colors cursor-pointer ${
                 filters.currency === curr
                   ? 'bg-white text-teal-700 shadow-xs ring-1 ring-slate-200'
                   : 'text-slate-600 hover:text-slate-900'
@@ -470,7 +509,7 @@ export function FilterSidebar({
         <button
           type="button"
           onClick={applyPriceInputs}
-          className="mt-2.5 w-full rounded-lg bg-teal-600 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-teal-700 transition-colors"
+          className="mt-2.5 w-full rounded-lg bg-teal-600 py-1.5 text-xs font-semibold text-white shadow-xs hover:bg-teal-700 transition-colors cursor-pointer"
         >
           Apply Price Filter
         </button>
@@ -484,7 +523,7 @@ export function FilterSidebar({
               setMaxPriceInput('5000');
               onSetPriceRange(0, 5000, 'THB');
             }}
-            className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 hover:bg-teal-100 transition-colors"
+            className="rounded bg-teal-50 px-2 py-0.5 text-[10px] font-medium text-teal-700 hover:bg-teal-100 transition-colors cursor-pointer"
           >
             Story: Under 5,000 THB
           </button>
@@ -505,7 +544,7 @@ export function FilterSidebar({
                   onToggleProvider(id);
                 }
               }}
-              className="text-[11px] font-medium text-teal-600 hover:underline"
+              className="text-[11px] font-medium text-teal-600 hover:underline cursor-pointer"
             >
               Clear ({filters.providerIds.length})
             </button>
@@ -524,7 +563,7 @@ export function FilterSidebar({
           />
         </div>
 
-        <div className="max-h-44 space-y-1.5 overflow-y-auto pr-1">
+        <div className="max-h-44 space-y-1.5 overflow-y-auto pr-1 custom-scrollbar">
           {filteredProviders.map((p) => {
             const isChecked = filters.providerIds.includes(p.id);
             const count = facets.providers[p.id] || 0;
@@ -545,7 +584,7 @@ export function FilterSidebar({
                     checked={isChecked}
                     disabled={isDisabled}
                     onChange={() => onToggleProvider(p.id)}
-                    className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 shrink-0"
+                    className="h-3.5 w-3.5 rounded border-slate-300 text-teal-600 focus:ring-teal-500 shrink-0 cursor-pointer"
                   />
                   <span className="truncate">{p.name}</span>
                 </div>
@@ -589,7 +628,7 @@ export function FilterSidebar({
               type="checkbox"
               checked={filters.testAtHome}
               onChange={onToggleTestAtHome}
-              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500"
+              className="h-4 w-4 rounded border-slate-300 text-teal-600 focus:ring-teal-500 cursor-pointer"
             />
           </div>
         </label>

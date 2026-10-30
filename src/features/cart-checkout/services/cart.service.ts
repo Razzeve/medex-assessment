@@ -1,4 +1,5 @@
 import {
+  AddCartItemPayload,
   CartItem,
   CheckoutOrder,
   GuestCartItem,
@@ -66,6 +67,24 @@ export class CartApiService {
     if (!res.ok) {
       const errorData = await res.json().catch(() => ({}));
       throw new Error(errorData.error || `Failed to fetch cart (HTTP ${res.status})`);
+    }
+
+    return res.json();
+  }
+
+  static async addItem(
+    payload: AddCartItemPayload,
+    options?: ApiOptions
+  ): Promise<{ cart: ServerCartResponse }> {
+    const res = await fetch('/api/cart', {
+      method: "POST",
+      headers: this.buildHeaders(options),
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      throw new Error(errorData.error || `Failed to add item (HTTP ${res.status})`);
     }
 
     return res.json();

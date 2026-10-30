@@ -193,16 +193,55 @@ export function useServiceFilters() {
 
   const setLocation = useCallback(
     (country: string | null, city: string | null) => {
-      // Auto-align currency when a country is selected to assist the user
+      // 1. If explicitly clearing location or resetting to All Locations:
+      if (!country && !city) {
+        updateUrl({
+          ...filters,
+          country: null,
+          city: null,
+          currency: 'ALL',
+          page: 1,
+        });
+        return;
+      }
+
+      // 2. Toggle behavior: If clicking an active country without city, deselect it and reset currency
+      const isCountryActive =
+        country &&
+        (filters.country === country ||
+          (!filters.country &&
+            ((country === 'Thailand' && filters.currency === 'THB') ||
+              (country === 'Nepal' && filters.currency === 'NPR') ||
+              (country === 'India' && filters.currency === 'INR'))));
+
+      if (isCountryActive && !city) {
+        updateUrl({
+          ...filters,
+          country: null,
+          city: null,
+          currency: 'ALL',
+          page: 1,
+        });
+        return;
+      }
+
+      // If active city is clicked again, deselect city
+      let nextCity = city;
+      if (city && filters.city === city) {
+        nextCity = null;
+      }
+
+      // Auto-align currency when a country is selected
       let nextCurrency = filters.currency;
       if (country === 'Thailand') nextCurrency = 'THB';
       else if (country === 'Nepal') nextCurrency = 'NPR';
       else if (country === 'India') nextCurrency = 'INR';
+      else if (!country) nextCurrency = 'ALL';
 
       updateUrl({
         ...filters,
         country,
-        city,
+        city: nextCity,
         currency: nextCurrency,
         page: 1,
       });
@@ -264,6 +303,7 @@ export function useServiceFilters() {
       filters.providerIds.length > 0 ||
       Boolean(filters.country) ||
       Boolean(filters.city) ||
+      Boolean(filters.currency && filters.currency !== 'ALL') ||
       filters.minPrice !== null ||
       filters.maxPrice !== null ||
       filters.testAtHome

@@ -1,6 +1,8 @@
 import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import {
+  AddCartItemPayload,
+  CartItem,
   CheckoutOrder,
   CouponDiscount,
   DevSimulationSettings,
@@ -48,6 +50,7 @@ interface CartStoreState {
 
   // Actions
   fetchCart: (forceReset?: boolean) => Promise<void>;
+  addItem: (payload: AddCartItemPayload) => Promise<void>;
   updateQuantity: (lineId: string, targetQuantity: number) => Promise<void>;
   updateWellnessDuration: (lineId: string, wellnessPricingId: string) => Promise<void>;
   removeItem: (lineId: string) => Promise<void>;
@@ -142,6 +145,113 @@ export const useCartStore = create<CartStoreState>()(
             isLoading: false,
             error: message,
           });
+        }
+      },
+
+      addItem: async (payload: AddCartItemPayload) => {
+        let { cart } = get();
+
+        // If cart is not yet loaded into store, fetch or initialize it
+        if (!cart) {
+          try {
+            const data = await CartApiService.getCart({ latency: 0 });
+            cart = data.cart;
+          } catch {
+            cart = { groups: [], totalItems: 0 };
+          }
+        }
+
+        const groupType: ServiceType = payload.type || "service";
+        const quantityToAdd = payload.quantity && payload.quantity > 0 ? payload.quantity : 1;
+
+        // Clone current groups deeply enough to mutate safely
+        const groups = cart.groups.map((g) => ({
+          ...g,
+          items: [...g.items],
+        }));
+
+        let targetGroup = groups.find((g) => g.type === groupType);
+
+        if (!targetGroup) {
+          targetGroup = {
+            type: groupType,
+            itemCount: 0,
+            unpricedItems: 0,
+            subtotals: {},
+            items: [],
+          };
+          groups.push(targetGroup);
+        }
+
+        // Check if item already exists in the group
+        const existingItemIndex = targetGroup.items.findIndex(
+          (item) =>
+            item.productId === String(payload.serviceId) &&
+            (!payload.selectedWellnessPricingId ||
+              item.selectedWellnessPricingId === payload.selectedWellnessPricingId)
+        );
+
+        let finalLineId: string;
+
+        if (existingItemIndex >= 0) {
+          const existingItem = targetGroup.items[existingItemIndex];
+          const newQty = existingItem.quantity + quantityToAdd;
+          targetGroup.items[existingItemIndex] = {
+            ...existingItem,
+            quantity: newQty,
+          };
+          finalLineId = existingItem.id;
+        } else {
+          finalLineId = `line_${payload.serviceId}_${Date.now()}`;
+          const newItem: CartItem = {
+            id: finalLineId,
+            productId: String(payload.serviceId),
+            quantity: quantityToAdd,
+            product: {
+              id: String(payload.serviceId),
+              title: payload.title,
+              type: groupType,
+              currency: payload.currency,
+              providerId: payload.providerId,
+              providerName: payload.providerName,
+              price: payload.price,
+              wellnessPricing: payload.wellnessPricing,
+              imageUrl: payload.imageUrl,
+              description: payload.categoryTitle,
+            },
+            selectedWellnessPricingId: payload.selectedWellnessPricingId,
+            selectedWellnessPricing: payload.selectedWellnessPricing,
+          };
+          targetGroup.items.push(newItem);
+        }
+
+        const normalized = normalizeServerCart({
+          groups,
+          totalItems: 0,
+        });
+
+        set((state) => ({
+          cart: normalized,
+          confirmedQuantities: {
+            ...state.confirmedQuantities,
+            [finalLineId]:
+              (state.confirmedQuantities[finalLineId] || 0) + quantityToAdd,
+          },
+          toastNotification: {
+            id: `add-${Date.now()}`,
+            message: `"${payload.title}" added to your cart!`,
+            type: "success",
+          },
+        }));
+
+        // Background server sync
+        try {
+          const { devSettings } = get();
+          if (!devSettings.simulateOffline) {
+            await CartApiService.addItem(payload, { latency: devSettings.latencyMs });
+          }
+        } catch (err) {
+          console.warn("Background cart sync failed (client store updated optimistically):", err);
         }
       },
 

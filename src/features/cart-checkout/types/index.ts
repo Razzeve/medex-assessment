@@ -49,6 +49,22 @@ export interface ServerCartResponse {
   totalItems: number;
 }
 
+export interface AddCartItemPayload {
+  serviceId: string | number;
+  title: string;
+  type?: ServiceType;
+  currency: Currency;
+  price: number;
+  providerId: number;
+  providerName: string;
+  categoryTitle?: string;
+  selectedWellnessPricingId?: string;
+  selectedWellnessPricing?: WellnessPricingOption;
+  wellnessPricing?: WellnessPricingOption[];
+  imageUrl?: string;
+  quantity?: number;
+}
+
 export interface GuestCartItem {
   productId: string;
   quantity: number;
@@ -164,4 +180,3 @@ export interface DevSimulationSettings {
   failNextMerge: boolean;
   simulateOffline: boolean;
 }
-

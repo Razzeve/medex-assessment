@@ -1,6 +1,7 @@
 import fs from "fs/promises";
 import path from "path";
 import {
+  AddCartItemPayload,
   CartProduct,
   CheckoutOrder,
   GuestCartItem,
@@ -60,6 +61,60 @@ export async function resetMockCart(): Promise<ServerCartResponse> {
   ordersStore.clear();
   idempotencyStore.clear();
   return currentCart;
+}
+
+export async function addCartItem(
+  payload: AddCartItemPayload
+): Promise<{ success: boolean; cart: ServerCartResponse }> {
+  const { cart } = await getOrInitCart();
+  const groupType = payload.type || "service";
+  const quantityToAdd = payload.quantity && payload.quantity > 0 ? payload.quantity : 1;
+
+  let group = cart.groups.find((g) => g.type === groupType);
+  if (!group) {
+    group = {
+      type: groupType,
+      itemCount: 0,
+      unpricedItems: 0,
+      subtotals: {},
+      items: [],
+    };
+    cart.groups.push(group);
+  }
+
+  const existingItem = group.items.find(
+    (item) =>
+      item.productId === String(payload.serviceId) &&
+      (!payload.selectedWellnessPricingId ||
+        item.selectedWellnessPricingId === payload.selectedWellnessPricingId)
+  );
+
+  if (existingItem) {
+    existingItem.quantity += quantityToAdd;
+  } else {
+    group.items.push({
+      id: `line_${payload.serviceId}_${Date.now()}`,
+      productId: String(payload.serviceId),
+      quantity: quantityToAdd,
+      product: {
+        id: String(payload.serviceId),
+        title: payload.title,
+        type: groupType,
+        currency: payload.currency,
+        providerId: payload.providerId,
+        providerName: payload.providerName,
+        price: payload.price,
+        wellnessPricing: payload.wellnessPricing,
+        imageUrl: payload.imageUrl,
+        description: payload.categoryTitle,
+      },
+      selectedWellnessPricingId: payload.selectedWellnessPricingId,
+      selectedWellnessPricing: payload.selectedWellnessPricing,
+    });
+  }
+
+  currentCart = normalizeServerCart(cart);
+  return { success: true, cart: currentCart };
 }
 
 export async function updateItemQuantity(
@@ -166,4 +221,3 @@ export function saveOrder(order: CheckoutOrder): void {
     idempotencyStore.set(order.idempotencyKey, order.orderId);
   }
 }
-

@@ -1,20 +1,20 @@
 'use client';
 
 import { useState, useMemo, useTransition } from 'react';
+import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import {
-  Sparkles,
-  SlidersHorizontal,
   ChevronLeft,
   ChevronRight,
-  Bug,
+  ArrowRight,
+  X,
   CheckCircle2,
-  AlertCircle,
-  Building2,
 } from 'lucide-react';
+import { PageHeader } from '@/components/layout/page-header';
+import { useCartStore } from '@/features/cart-checkout/store/useCartStore';
 import { useCatalogData } from '../hooks/use-catalog-data';
 import { useServiceFilters } from '../hooks/use-service-filters';
 import { calculateFacetCounts, groupAndSortServices } from '../utils/facets';
-import { FilterState } from '../types';
 import { SearchBar } from './search-bar';
 import { FilterSidebar } from './filter-sidebar';
 import { SortAndView } from './sort-and-view';
@@ -45,8 +45,16 @@ export function ServiceExplorerView() {
     hasActiveFilters,
   } = useServiceFilters();
 
-  // On-demand API Failure simulation for assessment evaluation
-  const [simulateError, setSimulateError] = useState(false);
+  // Cart store notification hook
+  const toast = useCartStore((state) => state.toastNotification);
+  const clearNotification = useCartStore((state) => state.clearNotification);
+
+  // On-demand API Failure simulation: supports ?error=true query parameter or manual dev state
+  const searchParams = useSearchParams();
+  const querySimulateError = searchParams?.get('error') === 'true';
+  const [manualSimulateError, setManualSimulateError] = useState(false);
+  const simulateError = querySimulateError || manualSimulateError;
+
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
   const [, startTransition] = useTransition();
 
@@ -101,77 +109,88 @@ export function ServiceExplorerView() {
     count += filters.providerIds.length;
     if (filters.country) count++;
     if (filters.city) count++;
+    if (filters.currency && filters.currency !== 'ALL') count++;
     if (filters.minPrice !== null || filters.maxPrice !== null) count++;
     if (filters.testAtHome) count++;
     return count;
   }, [filters]);
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Assessment Context Banner */}
-      <div className="mb-6 rounded-2xl border border-teal-200 bg-gradient-to-r from-teal-50 via-teal-50/50 to-slate-50 p-4 sm:p-5 shadow-xs">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-teal-100/80 px-2.5 py-0.5 text-xs font-semibold text-teal-800">
-              <Sparkles className="h-3 w-3" />
-              Task 1: Service Explorer &amp; Live Faceted Discovery
-            </div>
-            <p className="mt-1.5 text-xs text-slate-600 max-w-2xl">
-              Target Story: &ldquo;I need a full-body check-up near Bangkok, under 5,000 THB, and I&apos;d like to compare a few hospitals side by side.&rdquo;
-            </p>
-          </div>
-
-          {/* Test On-Demand API Error Toggle per Brief */}
+    <div className="min-h-screen bg-slate-50 relative">
+      {/* Toast Notification Alert for Cart Integration */}
+      {toast && (
+        <div
+          className={`fixed top-20 right-4 z-50 flex items-center gap-3 rounded-xl border p-4 shadow-xl transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${
+            toast.type === 'error'
+              ? 'border-rose-200 bg-rose-50 text-rose-900'
+              : toast.type === 'success'
+              ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+              : 'border-slate-200 bg-white text-slate-800'
+          }`}
+          role="alert"
+        >
           <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => {
-                setSimulateError(!simulateError);
-                startTransition(() => {
-                  refetch();
-                });
-              }}
-              className={`inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                simulateError
-                  ? 'border-rose-300 bg-rose-50 text-rose-700'
-                  : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50'
-              }`}
+            {toast.type === 'success' && <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />}
+            <span className="text-xs sm:text-sm font-semibold">{toast.message}</span>
+            <Link
+              href="/cart"
+              className="ml-2 inline-flex items-center gap-1 rounded-md bg-teal-600 px-2.5 py-1 text-xs font-bold text-white hover:bg-teal-700 transition-colors shadow-2xs whitespace-nowrap"
             >
-              <Bug className="h-3.5 w-3.5" />
-              <span>{simulateError ? 'Turn Off Simulated Error' : 'Simulate API Failure'}</span>
-            </button>
+              <span>View Cart</span>
+              <ArrowRight className="h-3 w-3" />
+            </Link>
           </div>
+          <button
+            type="button"
+            onClick={clearNotification}
+            className="rounded p-1 hover:bg-black/5 transition-colors cursor-pointer text-slate-500 hover:text-slate-700"
+            aria-label="Dismiss notification"
+          >
+            <X className="h-4 w-4" />
+          </button>
         </div>
-      </div>
+      )}
 
-      {/* Main Search Bar */}
-      <div className="mb-6">
-        <SearchBar
-          value={filters.search}
-          onChange={setSearch}
-          placeholder="Search by package name, test, provider, or category (e.g. Health Check, Riverside)..."
-        />
-      </div>
+      {/* Standardized Unified Page Header */}
+      <PageHeader
+        title="Service Explorer & Healthcare Catalog"
+        description="Discover and schedule specialized healthcare services, lab tests, and doctor consultations with real-time filtering and live availability."
+        actions={
+          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Live Availability</span>
+          </div>
+        }
+      />
 
-      {/* Loading Skeleton State */}
-      {isLoading ? (
-        <ServiceExplorerSkeleton />
-      ) : isError ? (
-        <ErrorState
-          error={error}
-          onRetry={() => refetch()}
-          isRetrying={isFetching}
-          isSimulatedError={simulateError}
-          onResetSimulatedError={() => {
-            setSimulateError(false);
-            setTimeout(() => refetch(), 50);
-          }}
-        />
-      ) : (
-        <div className="flex flex-col gap-8 lg:flex-row">
-          {/* Desktop Filter Sidebar */}
-          <div className="hidden lg:block lg:w-80 shrink-0">
-            <div className="sticky top-20">
+      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+        {/* Main Search Bar */}
+        <div className="mb-6">
+          <SearchBar
+            value={filters.search}
+            onChange={setSearch}
+            placeholder="Search by package name, test, provider, or category (e.g. Health Check, Riverside)..."
+          />
+        </div>
+
+        {/* Loading Skeleton State */}
+        {isLoading ? (
+          <ServiceExplorerSkeleton />
+        ) : isError ? (
+          <ErrorState
+            error={error}
+            onRetry={() => refetch()}
+            isRetrying={isFetching}
+            isSimulatedError={simulateError}
+            onResetSimulatedError={() => {
+              setManualSimulateError(false);
+              setTimeout(() => refetch(), 50);
+            }}
+          />
+        ) : (
+          <div className="flex flex-col gap-8 lg:flex-row">
+            {/* Desktop Filter Sidebar: Independent Sticky & Scrollable Container */}
+            <div className="hidden lg:block lg:w-80 shrink-0">
               <FilterSidebar
                 categories={data?.categories || []}
                 providers={data?.providers || []}
@@ -186,106 +205,107 @@ export function ServiceExplorerView() {
                 onToggleTestAtHome={toggleTestAtHome}
                 onResetFilters={resetFilters}
                 hasActiveFilters={hasActiveFilters}
+                className="sticky top-20 h-[calc(100vh-5rem)] overflow-y-auto pr-2 custom-scrollbar"
               />
             </div>
-          </div>
 
-          {/* Results Column */}
-          <main className="flex-1 space-y-6">
-            {/* Sort & View Controls */}
-            <SortAndView
-              totalMatches={facets.totalVisibleMatches}
-              providerCount={totalProviderGroups}
-              sort={filters.sort}
-              view={filters.view}
-              onSortChange={setSort}
-              onViewChange={setView}
-              onOpenMobileFilters={() => setIsMobileDrawerOpen(true)}
-              activeFilterCount={activeFilterCount}
-            />
-
-            {/* Results Content */}
-            {totalProviderGroups === 0 ? (
-              <EmptyState
-                filters={filters}
-                onResetFilters={resetFilters}
-                onClearPriceFilter={() => setPriceRange(null, null)}
-                onClearSearch={() => setSearch('')}
-                onClearLocation={() => setLocation(null, null)}
+            {/* Results Column */}
+            <main className="flex-1 min-w-0 space-y-6">
+              {/* Sort & View Controls */}
+              <SortAndView
+                totalMatches={facets.totalVisibleMatches}
+                providerCount={totalProviderGroups}
+                sort={filters.sort}
+                view={filters.view}
+                onSortChange={setSort}
+                onViewChange={setView}
+                onOpenMobileFilters={() => setIsMobileDrawerOpen(true)}
+                activeFilterCount={activeFilterCount}
               />
-            ) : (
-              <div className="space-y-6">
-                {paginatedGroups.map((group) => (
-                  <ProviderGroupCard
-                    key={group.provider.id}
-                    group={group}
-                    viewMode={filters.view}
-                  />
-                ))}
 
-                {/* Pagination Controls */}
-                {totalPages > 1 && (
-                  <nav
-                    aria-label="Provider catalog pagination"
-                    className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 rounded-xl shadow-xs"
-                  >
-                    <div className="text-xs text-slate-500">
-                      Showing{' '}
-                      <span className="font-semibold text-slate-900">
-                        {(currentPage - 1) * PROVIDERS_PER_PAGE + 1}
-                      </span>{' '}
-                      to{' '}
-                      <span className="font-semibold text-slate-900">
-                        {Math.min(currentPage * PROVIDERS_PER_PAGE, totalProviderGroups)}
-                      </span>{' '}
-                      of{' '}
-                      <span className="font-semibold text-slate-900">{totalProviderGroups}</span>{' '}
-                      providers
-                    </div>
+              {/* Results Content */}
+              {totalProviderGroups === 0 ? (
+                <EmptyState
+                  filters={filters}
+                  onResetFilters={resetFilters}
+                  onClearPriceFilter={() => setPriceRange(null, null)}
+                  onClearSearch={() => setSearch('')}
+                  onClearLocation={() => setLocation(null, null)}
+                />
+              ) : (
+                <div className="space-y-6">
+                  {paginatedGroups.map((group) => (
+                    <ProviderGroupCard
+                      key={group.provider.id}
+                      group={group}
+                      viewMode={filters.view}
+                    />
+                  ))}
 
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        disabled={currentPage <= 1}
-                        onClick={() => setPage(currentPage - 1)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <ChevronLeft className="h-3.5 w-3.5" />
-                        <span>Prev</span>
-                      </button>
+                  {/* Pagination Controls */}
+                  {totalPages > 1 && (
+                    <nav
+                      aria-label="Provider catalog pagination"
+                      className="flex items-center justify-between border-t border-slate-200 bg-white px-4 py-3 rounded-xl shadow-xs"
+                    >
+                      <div className="text-xs text-slate-500">
+                        Showing{' '}
+                        <span className="font-semibold text-slate-900">
+                          {(currentPage - 1) * PROVIDERS_PER_PAGE + 1}
+                        </span>{' '}
+                        to{' '}
+                        <span className="font-semibold text-slate-900">
+                          {Math.min(currentPage * PROVIDERS_PER_PAGE, totalProviderGroups)}
+                        </span>{' '}
+                        of{' '}
+                        <span className="font-semibold text-slate-900">{totalProviderGroups}</span>{' '}
+                        providers
+                      </div>
 
-                      <span className="px-2 text-xs font-medium text-slate-600">
-                        {currentPage} / {totalPages}
-                      </span>
+                      <div className="flex items-center gap-1.5">
+                        <button
+                          type="button"
+                          disabled={currentPage <= 1}
+                          onClick={() => setPage(currentPage - 1)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          <ChevronLeft className="h-3.5 w-3.5" />
+                          <span>Prev</span>
+                        </button>
 
-                      <button
-                        type="button"
-                        disabled={currentPage >= totalPages}
-                        onClick={() => setPage(currentPage + 1)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                      >
-                        <span>Next</span>
-                        <ChevronRight className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </nav>
-                )}
-              </div>
-            )}
-          </main>
-        </div>
-      )}
+                        <span className="px-2 text-xs font-medium text-slate-600">
+                          {currentPage} / {totalPages}
+                        </span>
 
-      {/* Mobile Filters Drawer */}
-      <MobileFilterDrawer
-        isOpen={isMobileDrawerOpen}
-        onClose={() => setIsMobileDrawerOpen(false)}
-        categories={data?.categories || []}
-        providers={data?.providers || []}
-        services={data?.services || []}
-        currentFilters={filters}
-        onApplyFilters={(applied) => updateUrl(applied)}
-      />
+                        <button
+                          type="button"
+                          disabled={currentPage >= totalPages}
+                          onClick={() => setPage(currentPage + 1)}
+                          className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer"
+                        >
+                          <span>Next</span>
+                          <ChevronRight className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </nav>
+                  )}
+                </div>
+              )}
+            </main>
+          </div>
+        )}
+
+        {/* Mobile Filters Drawer */}
+        <MobileFilterDrawer
+          isOpen={isMobileDrawerOpen}
+          onClose={() => setIsMobileDrawerOpen(false)}
+          categories={data?.categories || []}
+          providers={data?.providers || []}
+          services={data?.services || []}
+          currentFilters={filters}
+          onApplyFilters={(applied) => updateUrl(applied)}
+        />
+      </div>
     </div>
   );
 }

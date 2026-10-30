@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getOrInitCart, resetMockCart } from "@/features/cart-checkout/services/mock-db";
+import { getOrInitCart, resetMockCart, addCartItem } from "@/features/cart-checkout/services/mock-db";
 
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
@@ -39,3 +39,25 @@ export async function GET(request: NextRequest) {
   }
 }
 
+export async function POST(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const latency = parseInt(
+    searchParams.get("latency") || request.headers.get("x-latency-ms") || "0",
+    10
+  );
+
+  if (latency > 0) {
+    await new Promise((resolve) => setTimeout(resolve, latency));
+  }
+
+  try {
+    const payload = await request.json();
+    const result = await addCartItem(payload);
+    return NextResponse.json({ cart: result.cart });
+  } catch (err) {
+    return NextResponse.json(
+      { error: "Failed to add item to cart", details: String(err) },
+      { status: 500 }
+    );
+  }
+}

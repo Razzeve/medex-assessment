@@ -79,14 +79,14 @@ export function DatePickerCarousel({
 
   if (isLoading) {
     return (
-      <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
-        <div className="flex items-center justify-between mb-3">
-          <div className="h-5 w-40 bg-slate-200 rounded animate-pulse" />
-          <div className="h-8 w-24 bg-slate-200 rounded animate-pulse" />
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
+        <div className="flex items-center justify-between mb-4">
+          <div className="h-5 w-40 rounded-lg bg-slate-200 animate-pulse" />
+          <div className="h-8 w-24 rounded-lg bg-slate-200 animate-pulse" />
         </div>
-        <div className="grid grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4 md:grid-cols-7">
           {Array.from({ length: 7 }).map((_, i) => (
-            <div key={i} className="h-24 rounded-lg bg-slate-100 animate-pulse" />
+            <div key={i} className="h-24 rounded-lg bg-slate-200 animate-pulse" />
           ))}
         </div>
       </div>
@@ -94,7 +94,7 @@ export function DatePickerCarousel({
   }
 
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm" ref={containerRef}>
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs" ref={containerRef}>
       {/* Header controls: month display & week navigation */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3.5">
         <div className="flex items-center gap-2">

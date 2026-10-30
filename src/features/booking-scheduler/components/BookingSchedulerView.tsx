@@ -13,6 +13,7 @@ import {
   BookingResponse,
   RescheduleResponse
 } from "../types";
+import { PageHeader } from "@/components/layout/page-header";
 import { PractitionerCard } from "./PractitionerCard";
 import { TimezoneSelector } from "./TimezoneSelector";
 import { DatePickerCarousel } from "./DatePickerCarousel";
@@ -21,6 +22,7 @@ import { GroupSizeSelector } from "./GroupSizeSelector";
 import { ConflictResolutionBanner } from "./ConflictResolutionBanner";
 import { BookingConfirmationModal } from "./BookingConfirmationModal";
 import { DevPanel } from "./DevPanel";
+import { BookingSchedulerSkeleton } from "./BookingSchedulerSkeleton";
 import { getCurrentDateInTimezone } from "../utils/timezone";
 import { findNextAvailableDate, formatFullDisplayDate } from "../utils/slots";
 import {
@@ -250,11 +252,20 @@ export function BookingSchedulerView() {
 
   if (isLoadingProviders) {
     return (
-      <div className="mx-auto max-w-6xl px-4 py-10 space-y-6">
-        <div className="h-28 rounded-2xl bg-slate-200 animate-pulse" />
-        <div className="h-16 rounded-xl bg-slate-200 animate-pulse" />
-        <div className="h-32 rounded-xl bg-slate-200 animate-pulse" />
-        <div className="h-64 rounded-xl bg-slate-200 animate-pulse" />
+      <div className="min-h-screen bg-slate-50 pb-20">
+        <PageHeader
+          title="Appointment Scheduler & Multi-Timezone Booking"
+          description="Book clinical consultations across international practitioner time zones with automatic offset conversion and conflict prevention."
+          actions={
+            <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs">
+              <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+              <span>Multi-Timezone Sync</span>
+            </div>
+          }
+        />
+        <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8">
+          <BookingSchedulerSkeleton />
+        </main>
       </div>
     );
   }
@@ -293,30 +304,20 @@ export function BookingSchedulerView() {
         </div>
       )}
 
-      {/* Main Container */}
-      <main className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
-        {/* Story Scenario Hero Banner */}
-        <section className="relative overflow-hidden rounded-2xl border border-teal-200/80 bg-gradient-to-br from-teal-900 via-teal-800 to-slate-900 p-6 sm:p-8 text-white shadow-md">
-          <div className="relative z-10 max-w-3xl">
-            <div className="flex flex-wrap items-center gap-2 mb-3">
-              <span className="rounded-full bg-teal-500/20 px-3 py-1 text-xs font-semibold text-teal-200 border border-teal-400/30">
-                Task 3: Cross-Timezone Booking Scheduler
-              </span>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs font-medium text-slate-300">
-                Cross-Border Healthcare Marketplace
-              </span>
-            </div>
-
-            <blockquote className="border-l-4 border-teal-400 pl-4 my-3 text-base sm:text-lg italic font-medium text-teal-50 leading-snug">
-              &ldquo;I live in Kathmandu. I&apos;m booking a check-up at a hospital in Bangkok for when I travel there next month. Which time is the appointment, mine or theirs?&rdquo;
-            </blockquote>
-
-            <p className="text-xs sm:text-sm text-teal-100/90 leading-relaxed">
-              <strong>Both times are displayed simultaneously.</strong> Hospital arrival slots are pinned to the facility&apos;s wall-clock time in <strong>{activeProvider.resolvedTimezone}</strong> alongside your local time in <strong>{patientTimezone}</strong>, with UTC offset differentials and cross-midnight date boundary transitions clearly visualised.
-            </p>
+      {/* Standardized Unified Page Header */}
+      <PageHeader
+        title="Appointment Scheduler & Multi-Timezone Booking"
+        description="Book clinical consultations across international practitioner time zones with automatic offset conversion and conflict prevention."
+        actions={
+          <div className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-600 shadow-2xs">
+            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Multi-Timezone Sync</span>
           </div>
-        </section>
+        }
+      />
 
+      {/* Main Container */}
+      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
         {/* Reschedule Active Flow Notification */}
         {isRescheduleMode && existingBooking && (
           <aside
@@ -461,7 +462,7 @@ export function BookingSchedulerView() {
         {/* Section 1: Practitioner Profile Card */}
         <section aria-labelledby="practitioner-details">
           <h2 id="practitioner-details" className="sr-only">
-            Healthcare Practitioner & Facility Profile
+            Healthcare Practitioner &amp; Facility Profile
           </h2>
           <PractitionerCard
             provider={activeProvider}

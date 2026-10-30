@@ -86,15 +86,52 @@ export function MobileFilterDrawer({
   };
 
   const handleSetLocation = (country: string | null, city: string | null) => {
+    // 1. Explicit clear or reset to All
+    if (!country && !city) {
+      setPendingFilters({
+        ...pendingFilters,
+        country: null,
+        city: null,
+        currency: 'ALL',
+      });
+      return;
+    }
+
+    // 2. Toggle behavior: clicking active country toggles it off
+    const isCountryActive =
+      country &&
+      (pendingFilters.country === country ||
+        (!pendingFilters.country &&
+          ((country === 'Thailand' && pendingFilters.currency === 'THB') ||
+            (country === 'Nepal' && pendingFilters.currency === 'NPR') ||
+            (country === 'India' && pendingFilters.currency === 'INR'))));
+
+    if (isCountryActive && !city) {
+      setPendingFilters({
+        ...pendingFilters,
+        country: null,
+        city: null,
+        currency: 'ALL',
+      });
+      return;
+    }
+
+    // City toggle
+    let nextCity = city;
+    if (city && pendingFilters.city === city) {
+      nextCity = null;
+    }
+
     let nextCurrency = pendingFilters.currency;
     if (country === 'Thailand') nextCurrency = 'THB';
     else if (country === 'Nepal') nextCurrency = 'NPR';
     else if (country === 'India') nextCurrency = 'INR';
+    else if (!country) nextCurrency = 'ALL';
 
     setPendingFilters({
       ...pendingFilters,
       country,
-      city,
+      city: nextCity,
       currency: nextCurrency,
     });
   };
@@ -166,15 +203,16 @@ export function MobileFilterDrawer({
             <button
               type="button"
               onClick={handleReset}
-              className="text-xs font-semibold text-slate-500 hover:text-slate-800"
+              className="text-xs font-semibold text-teal-600 hover:text-teal-700 flex items-center gap-1 cursor-pointer"
             >
-              Reset
+              <RotateCcw className="h-3 w-3" />
+              <span>Reset All</span>
             </button>
             <button
               type="button"
               onClick={onClose}
               aria-label="Close filters drawer"
-              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600"
+              className="rounded-lg p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 cursor-pointer"
             >
               <X className="h-5 w-5" />
             </button>
@@ -182,7 +220,7 @@ export function MobileFilterDrawer({
         </div>
 
         {/* Drawer Scrollable Content */}
-        <div className="flex-1 overflow-y-auto p-4">
+        <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <FilterSidebar
             categories={categories}
             providers={providers}
@@ -197,16 +235,16 @@ export function MobileFilterDrawer({
             onToggleTestAtHome={handleToggleTestAtHome}
             onResetFilters={handleReset}
             hasActiveFilters={true}
-            className="border-0 shadow-none p-0"
+            className="border-0 shadow-none p-0 static h-auto overflow-visible pr-0"
           />
         </div>
 
-        {/* Drawer Sticky Footer: "Show N results" requirement */}
+        {/* Drawer Sticky Footer */}
         <div className="border-t border-slate-200 bg-white p-4 shadow-lg">
           <button
             type="button"
             onClick={handleApply}
-            className="w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-700 transition-colors focus:ring-2 focus:ring-teal-500/30"
+            className="w-full rounded-xl bg-teal-600 py-3 text-sm font-bold text-white shadow-sm hover:bg-teal-700 transition-colors focus:ring-2 focus:ring-teal-500/30 cursor-pointer"
           >
             Show {pendingCount} {pendingCount === 1 ? 'result' : 'results'}
           </button>

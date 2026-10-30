@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Stethoscope, ShoppingBag, Calendar, Activity, Menu, X, ChevronRight } from "lucide-react";
+import { useCartTotalCount } from "@/features/cart-checkout/store/selectors";
 
 interface NavItem {
   name: string;
@@ -38,6 +39,10 @@ export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mounted, setMounted] = useState(false);
+
+  // Live cart count from Zustand store (safe for SSR hydration)
+  const totalCartCount = useCartTotalCount();
+  const cartCount = mounted ? totalCartCount : 0;
 
   // Client-side mount check for createPortal
   useEffect(() => {
@@ -102,6 +107,8 @@ export function Navbar() {
             {navigationItems.map((item) => {
               const isActive = pathname.startsWith(item.href);
               const Icon = item.icon;
+              const isCart = item.href === "/cart";
+
               return (
                 <Link
                   key={item.href}
@@ -118,22 +125,44 @@ export function Navbar() {
                     }`}
                   />
                   <span>{item.name}</span>
+
+                  {/* Cart badge increment */}
+                  {isCart && cartCount > 0 && (
+                    <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-bold text-white shadow-xs animate-in zoom-in-75 duration-200">
+                      {cartCount}
+                    </span>
+                  )}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Mobile Trigger Button (Rightmost side with "Services" and Hamburger Icon) */}
-          <button
-            type="button"
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-all duration-200 ease-in-out hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 md:hidden"
-            aria-label="Open Services menu"
-            aria-expanded={mobileMenuOpen}
-          >
-            <Menu className="h-4 w-4 text-slate-600" />
-            <span>Features</span>
-          </button>
+          {/* Mobile Right Controls: Quick Cart Link + Features Menu Drawer Trigger */}
+          <div className="flex items-center gap-2 md:hidden">
+            <Link
+              href="/cart"
+              className="relative flex items-center justify-center rounded-lg border border-slate-200 bg-white p-2 text-slate-700 shadow-xs hover:bg-slate-50 transition-colors"
+              aria-label={`Cart with ${cartCount} items`}
+            >
+              <ShoppingBag className="h-4 w-4" />
+              {cartCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-teal-600 px-1 text-[9px] font-bold text-white shadow-xs animate-in zoom-in-75 duration-200">
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            <button
+              type="button"
+              onClick={() => setMobileMenuOpen(true)}
+              className="flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-700 shadow-xs transition-all duration-200 ease-in-out hover:bg-slate-50 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 cursor-pointer"
+              aria-label="Open Services menu"
+              aria-expanded={mobileMenuOpen}
+            >
+              <Menu className="h-4 w-4 text-slate-600" />
+              <span>Features</span>
+            </button>
+          </div>
         </div>
       </header>
 
@@ -177,7 +206,7 @@ export function Navbar() {
                 <button
                   type="button"
                   onClick={() => setMobileMenuOpen(false)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 ease-in-out hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
+                  className="flex h-9 w-9 items-center justify-center rounded-lg border border-slate-200 bg-slate-50 text-slate-600 transition-all duration-200 ease-in-out hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600 cursor-pointer"
                   aria-label="Close menu"
                 >
                   <X className="h-5 w-5" />
@@ -194,6 +223,8 @@ export function Navbar() {
                     {navigationItems.map((item) => {
                       const isActive = pathname.startsWith(item.href);
                       const Icon = item.icon;
+                      const isCart = item.href === "/cart";
+
                       return (
                         <Link
                           key={item.href}
@@ -228,11 +259,18 @@ export function Navbar() {
                               </span>
                             </div>
                           </div>
-                          <ChevronRight
-                            className={`h-4 w-4 shrink-0 transition-transform duration-200 ease-in-out group-hover:translate-x-0.5 ${
-                              isActive ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600"
-                            }`}
-                          />
+                          <div className="flex items-center gap-2">
+                            {isCart && cartCount > 0 && (
+                              <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
+                                {cartCount}
+                              </span>
+                            )}
+                            <ChevronRight
+                              className={`h-4 w-4 shrink-0 transition-transform duration-200 ease-in-out group-hover:translate-x-0.5 ${
+                                isActive ? "text-teal-600" : "text-slate-400 group-hover:text-slate-600"
+                              }`}
+                            />
+                          </div>
                         </Link>
                       );
                     })}
