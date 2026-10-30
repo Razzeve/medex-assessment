@@ -135,10 +135,10 @@ export function FilterSidebar({
   return (
     <aside
       aria-label="Service Catalog Filters"
-      className={`flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs ${className}`}
+      className={`flex flex-col gap-6 rounded-2xl border border-slate-200 bg-white p-5 shadow-xs overflow-x-hidden ${className}`}
     >
       {/* Top Header with Prominent Reset All Filters */}
-      <div className="sticky top-0 z-20 -mx-5 -mt-5 bg-white px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
+      <div className="sticky top-[-20px] z-20 -mx-5 -mt-5 bg-white px-5 pt-5 pb-3 border-b border-slate-100 flex items-center justify-between">
         <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
           <Filter className="h-4 w-4 text-teal-600" />
           <span>Faceted Filters</span>
