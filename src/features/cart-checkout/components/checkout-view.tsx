@@ -16,10 +16,10 @@ import {
   Lock,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 import { useSplitPackages } from "../store/selectors";
-import { CheckoutStepper } from "./CheckoutStepper";
-import { DevPanel } from "./DevPanel";
+import { CheckoutStepper } from "./checkout-stepper";
+import { DevPanel } from "./dev-panel";
 import { formatCurrency } from "../utils/currency";
 import { calculateDiscount } from "../utils/coupons";
 
@@ -365,7 +365,6 @@ export function CheckoutView() {
                 </div>
               )}
 
-              {/* Final Settlement Total */}
               <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2 border-t border-slate-100">
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
                   Total Settlement Amount

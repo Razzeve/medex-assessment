@@ -12,7 +12,7 @@ import {
   PackageCheck,
 } from "lucide-react";
 import { SplitPackage } from "../types";
-import { CartItemList } from "./CartItemList";
+import { CartItemList } from "./cart-item-list";
 import { formatCurrency, formatSubtotals } from "../utils/currency";
 
 interface VendorGroupCardProps {
@@ -74,7 +74,6 @@ export function VendorGroupCard({
       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-all hover:shadow-md"
       aria-labelledby={`heading-${groupType}`}
     >
-      {/* Group Header */}
       <div className="border-b border-slate-100 bg-slate-50/70 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
         <div className="flex items-start gap-3.5">
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-2xs border border-slate-200">
@@ -97,7 +96,6 @@ export function VendorGroupCard({
           </div>
         </div>
 
-        {/* Fulfillment Timeline */}
         <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shrink-0 self-start sm:self-auto">
           <Clock className="h-3.5 w-3.5 text-teal-600 shrink-0" />
           <span>{estimatedTimeline}</span>
@@ -109,7 +107,6 @@ export function VendorGroupCard({
         <CartItemList items={items} />
       </div>
 
-      {/* Blocking Warnings */}
       {blockingReasons.length > 0 && (
         <div className="mx-4 sm:mx-5 mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5">
           <div className="flex items-start gap-2.5">
@@ -126,9 +123,7 @@ export function VendorGroupCard({
         </div>
       )}
 
-      {/* Subtotal & Routing Footer */}
       <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        {/* Discrete Multi-Currency Breakdown */}
         <div className="space-y-1">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
             Package Subtotal ({items.reduce((acc, i) => acc + (i.quantity || 1), 0)} items):

@@ -16,7 +16,7 @@ import {
   Package,
   Layers,
 } from "lucide-react";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 import { useSplitPackages } from "../store/selectors";
 import {
   CheckoutOrder,
@@ -25,8 +25,8 @@ import {
   SplitPackage,
 } from "../types";
 import { formatCurrency, formatSubtotals } from "../utils/currency";
-import { PatientDetailsForm, FormErrors } from "./PatientDetailsForm";
-import { PaymentConfirmation } from "./PaymentConfirmation";
+import { PatientDetailsForm, FormErrors } from "./patient-details-form";
+import { PaymentConfirmation } from "./payment-confirmation";
 
 export function CheckoutStepper() {
   const searchParams = useSearchParams();
@@ -54,10 +54,8 @@ export function CheckoutStepper() {
   const [isSuccessView, setIsSuccessView] = useState(false);
   const [placedOrders, setPlacedOrders] = useState<CheckoutOrder[]>([]);
 
-  // Realistic Simulated Loading Spinner state
   const [isExecutingOrder, setIsExecutingOrder] = useState(false);
 
-  // Form State
   const [patientDetails, setPatientDetails] = useState<PatientDetails>({
     fullName: "Aarav Sharma",
     email: "aarav.sharma@medex.asia",
@@ -73,13 +71,10 @@ export function CheckoutStepper() {
 
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
-  // Payment method selection per group
   const [paymentMethods, setPaymentMethods] = useState<Record<string, PaymentMethod>>({});
 
-  // Active review tab for unified checkout
   const [selectedReviewTab, setSelectedReviewTab] = useState<string>("all");
 
-  // Track retry states
   const [retryingGroup, setRetryingGroup] = useState<string | null>(null);
 
   const getPaymentMethod = (groupType: string): PaymentMethod => {
@@ -90,11 +85,10 @@ export function CheckoutStepper() {
     setPaymentMethods((prev) => ({ ...prev, [groupType]: method }));
   };
 
-  // Step 2 Form Validation (Sensible requirements based on service type)
+  // Validate required patient details based on package fulfillment type
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
 
-    // 1. General Legal Patient Identity & Contact
     if (!patientDetails.fullName?.trim()) {
       errors.fullName = "Patient full legal name is required";
     }
@@ -155,7 +149,7 @@ export function CheckoutStepper() {
     }
   };
 
-  // Step 3 Checkout Execution with realistic 1-2s simulated loading spinner
+  // Execute checkout settlement across active packages
   const handleExecuteCheckout = async () => {
     const eligible = activePackages.filter((p) => p.eligibleForCheckout);
     if (eligible.length === 0) return;
@@ -163,17 +157,14 @@ export function CheckoutStepper() {
     setIsExecutingOrder(true);
 
     try {
-      // Simulate realistic authorization delay (1200ms) for professional UX feel
       await new Promise((resolve) => setTimeout(resolve, 1200));
 
       if (isolatedPackage) {
-        // Individual package checkout
         const method = getPaymentMethod(isolatedPackage.groupType);
         const order = await checkoutGroup(isolatedPackage, method, patientDetails);
         setPlacedOrders([order]);
         setIsSuccessView(true);
       } else {
-        // Unified checkout across all packages
         const defaultMethod = getPaymentMethod(eligible[0].groupType);
         const { succeeded } = await checkoutAll(eligible, defaultMethod, patientDetails);
         if (succeeded.length > 0) {
@@ -182,13 +173,11 @@ export function CheckoutStepper() {
         }
       }
     } catch {
-      // Errors handled by Zustand store checkoutSession.checkoutErrors
     } finally {
       setIsExecutingOrder(false);
     }
   };
 
-  // Retry a failed package with same idempotency key
   const handleRetry = async (pkg: SplitPackage) => {
     setRetryingGroup(pkg.groupType);
     try {
@@ -196,13 +185,11 @@ export function CheckoutStepper() {
       const order = await retryFailedGroupCheckout(pkg, method, patientDetails);
       setPlacedOrders((prev) => [...prev, order]);
     } catch {
-      // Error handled by store
     } finally {
       setRetryingGroup(null);
     }
   };
 
-  // If order was successfully placed, render PaymentConfirmation state
   if (isSuccessView && placedOrders.length > 0) {
     const remainingCount = allPackages.filter(
       (p) => !placedOrders.some((o) => o.groupType === p.groupType)
@@ -216,7 +203,6 @@ export function CheckoutStepper() {
     );
   }
 
-  // Handle case where specific group parameter was requested but not found or empty
   if (selectedGroupParam && activePackages.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-4">
@@ -283,7 +269,6 @@ export function CheckoutStepper() {
         </div>
       )}
 
-      {/* Responsive Adaptive Stepper Progress Bar */}
       <nav
         aria-label="Checkout Progress Navigation"
         className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-xs"
@@ -308,7 +293,6 @@ export function CheckoutStepper() {
             </div>
           </div>
 
-          {/* Compact 3 Dots indicator */}
           <div className="flex items-center gap-1.5">
             {[1, 2, 3].map((step) => (
               <div
@@ -327,7 +311,6 @@ export function CheckoutStepper() {
 
         {/* Desktop / Tablet View: Full Step Indicators (>= 640px) */}
         <ol className="hidden sm:flex items-center justify-between text-xs font-semibold">
-          {/* Step 1 */}
           <li className="flex items-center gap-2.5">
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
@@ -347,7 +330,6 @@ export function CheckoutStepper() {
 
           <div className="h-0.5 flex-1 max-w-[80px] bg-slate-200 mx-2" />
 
-          {/* Step 2 */}
           <li className="flex items-center gap-2.5">
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
@@ -367,7 +349,6 @@ export function CheckoutStepper() {
 
           <div className="h-0.5 flex-1 max-w-[80px] bg-slate-200 mx-2" />
 
-          {/* Step 3 */}
           <li className="flex items-center gap-2.5">
             <span
               className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
@@ -385,9 +366,6 @@ export function CheckoutStepper() {
         </ol>
       </nav>
 
-      {/* ============================================================ */}
-      {/* STEP 1: Split Packages Breakdown Review */}
-      {/* ============================================================ */}
       {currentStep === 1 && (
         <div className="space-y-6">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -408,7 +386,6 @@ export function CheckoutStepper() {
             </Link>
           </div>
 
-          {/* Unified Checkout Tabs (if multiple packages) */}
           {!selectedGroupParam && activePackages.length > 1 && (
             <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
               <button
@@ -439,7 +416,6 @@ export function CheckoutStepper() {
             </div>
           )}
 
-          {/* Packages Display */}
           <div className="grid gap-6">
             {activePackages
               .filter(
@@ -475,7 +451,6 @@ export function CheckoutStepper() {
                       </div>
                     </div>
 
-                    {/* Items Summary Table */}
                     <div className="space-y-2">
                       {pkg.items.map((item) => (
                         <div
@@ -498,7 +473,6 @@ export function CheckoutStepper() {
                       ))}
                     </div>
 
-                    {/* Subtotal & Delivery per currency */}
                     <div className="border-t border-slate-100 pt-3 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/70 p-3 rounded-xl">
                       <span className="font-semibold text-slate-600">Settlement Total:</span>
                       <div className="flex flex-wrap gap-2">
@@ -537,9 +511,6 @@ export function CheckoutStepper() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* STEP 2: Patient & Fulfillment Contact Form */}
-      {/* ============================================================ */}
       {currentStep === 2 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -574,9 +545,6 @@ export function CheckoutStepper() {
         </div>
       )}
 
-      {/* ============================================================ */}
-      {/* STEP 3: Payment & Split Execution */}
-      {/* ============================================================ */}
       {currentStep === 3 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
@@ -598,7 +566,6 @@ export function CheckoutStepper() {
             </button>
           </div>
 
-          {/* Active Split Execution Cards */}
           <div className="space-y-5">
             {activePackages.map((pkg) => {
               const currentMethod = getPaymentMethod(pkg.groupType);
@@ -627,7 +594,6 @@ export function CheckoutStepper() {
                       </p>
                     </div>
 
-                    {/* Status Badge */}
                     <div>
                       {groupError ? (
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-800">
@@ -643,7 +609,6 @@ export function CheckoutStepper() {
                     </div>
                   </div>
 
-                  {/* Payment Method Selector */}
                   <div className="mt-4 space-y-3">
                     <div className="text-xs font-semibold text-slate-700">
                       Select Payment Method for {pkg.title}:
@@ -691,7 +656,6 @@ export function CheckoutStepper() {
                     </div>
                   </div>
 
-                  {/* Partial Failure Alert with Retry Action */}
                   {groupError && (
                     <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">

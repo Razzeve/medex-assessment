@@ -1,6 +1,6 @@
 import React from "react";
 import { CartItem } from "../types";
-import { CartItemRow } from "./CartItemRow";
+import { CartItemRow } from "./cart-item-row";
 
 interface CartItemListProps {
   items: CartItem[];

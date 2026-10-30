@@ -250,8 +250,8 @@ export const useCartStore = create<CartStoreState>()(
           if (!devSettings.simulateOffline) {
             await CartApiService.addItem(payload, { latency: devSettings.latencyMs });
           }
-        } catch (err) {
-          console.warn("Background cart sync failed (client store updated optimistically):", err);
+        } catch {
+          // Background cart sync failed; client store updated optimistically
         }
       },
 
@@ -433,8 +433,8 @@ export const useCartStore = create<CartStoreState>()(
 
         try {
           await CartApiService.deleteItem(lineId, { latency: devSettings.latencyMs });
-        } catch (err: unknown) {
-          console.error("Failed to delete item on server", err);
+        } catch {
+          // Server item deletion failed; optimistic state retained
         }
       },
 

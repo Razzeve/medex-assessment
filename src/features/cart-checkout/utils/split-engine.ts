@@ -158,7 +158,7 @@ export function calculateDeliveryFees(
     if (standardFee === 0) {
       fees[currency] = 0;
     } else if (threshold !== undefined && subtotal >= threshold) {
-      fees[currency] = 0; // Free delivery threshold reached!
+      fees[currency] = 0; // Fee waived when threshold is met
     } else {
       fees[currency] = standardFee;
     }

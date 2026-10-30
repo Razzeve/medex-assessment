@@ -95,7 +95,6 @@ export function DatePickerCarousel({
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs" ref={containerRef}>
-      {/* Header controls: month display & week navigation */}
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between mb-3.5">
         <div className="flex items-center gap-2">
           <CalendarIcon className="h-4 w-4 text-teal-600" />
@@ -141,7 +140,6 @@ export function DatePickerCarousel({
         </div>
       </div>
 
-      {/* 7-Day Interactive Day Carousel */}
       <div
         role="grid"
         aria-label="Calendar 7-day view"
@@ -169,26 +167,22 @@ export function DatePickerCarousel({
                   : "border border-slate-100 bg-slate-50/80 opacity-60 cursor-pointer"
               }`}
             >
-              {/* Day of Week */}
               <span className={`text-[11px] font-semibold uppercase tracking-wider ${
                 isSelected ? "text-teal-700" : "text-slate-500"
               }`}>
                 {day.formattedDay}
               </span>
 
-              {/* Day Number */}
               <span className={`my-1 text-xl font-extrabold ${
                 isSelected ? "text-teal-900" : day.isOpen ? "text-slate-900" : "text-slate-400"
               }`}>
                 {day.dayNumber}
               </span>
 
-              {/* Month */}
               <span className="text-[10px] font-medium text-slate-400 mb-1.5">
                 {day.monthName}
               </span>
 
-              {/* Availability Badge */}
               <div className="w-full">
                 {day.isClosedByClosure ? (
                   <span className="inline-block w-full truncate rounded bg-rose-50 px-1 py-0.5 text-[10px] font-medium text-rose-700 border border-rose-200" title={day.closureReason}>
@@ -213,7 +207,6 @@ export function DatePickerCarousel({
                 )}
               </div>
 
-              {/* Indicator if Today */}
               {day.isToday && (
                 <span className="absolute -top-1.5 right-2 rounded-full bg-teal-600 px-1.5 text-[9px] font-bold text-white uppercase tracking-tighter">
                   Today

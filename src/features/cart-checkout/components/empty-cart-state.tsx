@@ -1,7 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { ShoppingBag, ArrowRight, RotateCcw, ShieldCheck } from "lucide-react";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 
 export function EmptyCartState() {
   const fetchCart = useCartStore((state) => state.fetchCart);

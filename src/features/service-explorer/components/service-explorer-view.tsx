@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo, useTransition } from 'react';
+import { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import {
@@ -11,7 +11,7 @@ import {
   CheckCircle2,
 } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
-import { useCartStore } from '@/features/cart-checkout/store/useCartStore';
+import { useCartStore } from '@/features/cart-checkout/store/use-cart-store';
 import { useCatalogData } from '../hooks/use-catalog-data';
 import { useServiceFilters } from '../hooks/use-service-filters';
 import { calculateFacetCounts, groupAndSortServices } from '../utils/facets';
@@ -56,7 +56,6 @@ export function ServiceExplorerView() {
   const simulateError = querySimulateError || manualSimulateError;
 
   const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
-  const [, startTransition] = useTransition();
 
   const {
     data,
@@ -67,9 +66,11 @@ export function ServiceExplorerView() {
     isFetching,
   } = useCatalogData({ simulateError });
 
-  // 1. Calculate live facet counts across all 2,853 visible services
+  const services = data?.services;
+
+  // 1. Calculate live facet counts across visible services
   const facets = useMemo(() => {
-    if (!data?.services) {
+    if (!services) {
       return {
         types: { package: 0, lab_test: 0, wellness: 0, service: 0, insurance: 0 },
         categories: {},
@@ -81,14 +82,14 @@ export function ServiceExplorerView() {
         totalVisibleMatches: 0,
       };
     }
-    return calculateFacetCounts(data.services, filters);
-  }, [data?.services, filters]);
+    return calculateFacetCounts(services, filters);
+  }, [services, filters]);
 
   // 2. Group and sort services by provider
   const providerGroups = useMemo(() => {
-    if (!data?.services) return [];
-    return groupAndSortServices(data.services, filters);
-  }, [data?.services, filters]);
+    if (!services) return [];
+    return groupAndSortServices(services, filters);
+  }, [services, filters]);
 
   // 3. Paginate provider groups
   const totalProviderGroups = providerGroups.length;
@@ -117,7 +118,6 @@ export function ServiceExplorerView() {
 
   return (
     <div className="min-h-screen bg-slate-50 relative">
-      {/* Toast Notification Alert for Cart Integration */}
       {toast && (
         <div
           className={`fixed top-20 right-4 z-50 flex items-center gap-3 rounded-xl border p-4 shadow-xl transition-all animate-in fade-in slide-in-from-top-2 duration-300 ${
@@ -151,7 +151,6 @@ export function ServiceExplorerView() {
         </div>
       )}
 
-      {/* Standardized Unified Page Header */}
       <PageHeader
         title="Service Explorer & Healthcare Catalog"
         description="Discover and schedule specialized healthcare services, lab tests, and doctor consultations with real-time filtering and live availability."
@@ -164,7 +163,6 @@ export function ServiceExplorerView() {
       />
 
       <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        {/* Main Search Bar */}
         <div className="mb-6">
           <SearchBar
             value={filters.search}
@@ -173,7 +171,6 @@ export function ServiceExplorerView() {
           />
         </div>
 
-        {/* Loading Skeleton State */}
         {isLoading ? (
           <ServiceExplorerSkeleton />
         ) : isError ? (
@@ -189,7 +186,6 @@ export function ServiceExplorerView() {
           />
         ) : (
           <div className="flex flex-col gap-8 lg:flex-row">
-            {/* Desktop Filter Sidebar: Independent Sticky & Scrollable Container */}
             <div className="hidden lg:block lg:w-80 shrink-0">
               <FilterSidebar
                 categories={data?.categories || []}
@@ -209,9 +205,7 @@ export function ServiceExplorerView() {
               />
             </div>
 
-            {/* Results Column */}
             <main className="flex-1 min-w-0 space-y-6">
-              {/* Sort & View Controls */}
               <SortAndView
                 totalMatches={facets.totalVisibleMatches}
                 providerCount={totalProviderGroups}
@@ -223,7 +217,6 @@ export function ServiceExplorerView() {
                 activeFilterCount={activeFilterCount}
               />
 
-              {/* Results Content */}
               {totalProviderGroups === 0 ? (
                 <EmptyState
                   filters={filters}
@@ -242,7 +235,6 @@ export function ServiceExplorerView() {
                     />
                   ))}
 
-                  {/* Pagination Controls */}
                   {totalPages > 1 && (
                     <nav
                       aria-label="Provider catalog pagination"
@@ -295,7 +287,6 @@ export function ServiceExplorerView() {
           </div>
         )}
 
-        {/* Mobile Filters Drawer */}
         <MobileFilterDrawer
           isOpen={isMobileDrawerOpen}
           onClose={() => setIsMobileDrawerOpen(false)}

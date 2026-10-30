@@ -90,7 +90,6 @@ export function BookingConfirmationModal({
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in"
     >
       <div className="relative w-full max-w-xl rounded-2xl bg-white p-6 shadow-2xl border border-slate-200 overflow-hidden max-h-[90vh] overflow-y-auto">
-        {/* Close Button */}
         <button
           type="button"
           onClick={onClose}
@@ -101,7 +100,6 @@ export function BookingConfirmationModal({
           <X className="h-5 w-5" />
         </button>
 
-        {/* Modal Header */}
         <div className="flex items-center gap-3">
           <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-teal-50 text-teal-700 border border-teal-200">
             <Calendar className="h-6 w-6" />
@@ -147,7 +145,6 @@ export function BookingConfirmationModal({
           </div>
         )}
 
-        {/* Two-Clock Appointment Highlight Box */}
         <div className="mt-4 rounded-xl border border-teal-200 bg-teal-50/60 p-4">
           <div className="flex items-center justify-between border-b border-teal-100 pb-2 mb-3">
             <div>
@@ -161,7 +158,6 @@ export function BookingConfirmationModal({
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Primary: Provider Time */}
             <div className="rounded-lg bg-white p-3 border border-teal-200 shadow-sm">
               <span className="text-[10px] font-bold uppercase tracking-wider text-teal-700 flex items-center gap-1">
                 <MapPin className="h-3 w-3 text-teal-600" />
@@ -178,7 +174,6 @@ export function BookingConfirmationModal({
               </p>
             </div>
 
-            {/* Secondary: Patient Local Time */}
             <div className="rounded-lg bg-white p-3 border border-slate-200 shadow-sm">
               <span className="text-[10px] font-semibold uppercase tracking-wider text-slate-500 flex items-center gap-1">
                 <Clock className="h-3 w-3 text-slate-400" />
@@ -199,7 +194,6 @@ export function BookingConfirmationModal({
           </div>
         </div>
 
-        {/* Patient Contact Form */}
         <form onSubmit={handleSubmit} className="mt-4 space-y-3">
           {formError && (
             <div className="rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700">
@@ -272,7 +266,6 @@ export function BookingConfirmationModal({
             />
           </div>
 
-          {/* Action CTAs */}
           <div className="mt-5 flex items-center justify-end gap-2.5 pt-3 border-t border-slate-100">
             <button
               type="button"

@@ -8,7 +8,6 @@ import React from 'react';
 export function BookingSchedulerSkeleton() {
   return (
     <div className="w-full space-y-6" aria-label="Loading booking scheduler" aria-busy="true">
-      {/* 1. Practitioner Profile Card Skeleton */}
       <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-5">
           <div className="flex items-center gap-4">
@@ -27,7 +26,6 @@ export function BookingSchedulerSkeleton() {
         </div>
       </div>
 
-      {/* 2. Timezone Selector Skeleton */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-2 flex-1">
@@ -41,7 +39,6 @@ export function BookingSchedulerSkeleton() {
         </div>
       </div>
 
-      {/* 3. Group Size Selector Skeleton */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="space-y-1.5">
@@ -56,7 +53,6 @@ export function BookingSchedulerSkeleton() {
         </div>
       </div>
 
-      {/* 4. Date Picker Carousel Skeleton */}
       <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">
         <div className="flex items-center justify-between mb-4">
           <div className="h-5 w-40 rounded-lg bg-slate-200 animate-pulse" />
@@ -69,7 +65,6 @@ export function BookingSchedulerSkeleton() {
         </div>
       </div>
 
-      {/* 5. Slot Grid Skeleton */}
       <div className="space-y-4">
         {[1, 2, 3].map((g) => (
           <div key={g} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs">

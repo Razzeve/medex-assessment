@@ -2,8 +2,8 @@ import { Suspense } from "react";
 import { Metadata } from "next";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
-import { CartView } from "@/features/cart-checkout/components/CartView";
-import { CartSkeleton } from "@/features/cart-checkout/components/CartSkeleton";
+import { CartView } from "@/features/cart-checkout/components/cart-view";
+import { CartSkeleton } from "@/features/cart-checkout/components/cart-skeleton";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = {

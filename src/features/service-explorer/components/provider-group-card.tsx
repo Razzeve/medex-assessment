@@ -35,7 +35,6 @@ export function ProviderGroupCard({ group, viewMode = 'grid' }: ProviderGroupCar
       aria-labelledby={`provider-${provider.id}-title`}
       className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-shadow hover:shadow-md"
     >
-      {/* Provider Header Banner */}
       <div className="border-b border-slate-100 bg-gradient-to-r from-slate-50 via-white to-teal-50/20 px-5 py-4">
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3.5">
@@ -96,7 +95,6 @@ export function ProviderGroupCard({ group, viewMode = 'grid' }: ProviderGroupCar
         </div>
       </div>
 
-      {/* Services Listing */}
       <div className="p-4 sm:p-5">
         <div
           className={
@@ -115,7 +113,6 @@ export function ProviderGroupCard({ group, viewMode = 'grid' }: ProviderGroupCar
           ))}
         </div>
 
-        {/* View All / Collapse toggle button */}
         {hasMore && (
           <div className="mt-4 flex justify-center border-t border-slate-100 pt-3">
             <button

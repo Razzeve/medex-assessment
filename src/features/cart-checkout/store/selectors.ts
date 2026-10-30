@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useCartStore } from "./useCartStore";
+import { useCartStore } from "./use-cart-store";
 import { createSplitPackage } from "../utils/split-engine";
 import { SplitPackage } from "../types";
 import { addMoney } from "../utils/currency";

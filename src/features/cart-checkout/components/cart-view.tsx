@@ -10,14 +10,14 @@ import {
   Layers,
 } from "lucide-react";
 import { PageHeader } from "@/components/layout/page-header";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 import { useCartTotalCount, useSplitPackages } from "../store/selectors";
-import { VendorGroupCard } from "./VendorGroupCard";
-import { OrderSummary } from "./OrderSummary";
-import { EmptyCartState } from "./EmptyCartState";
-import { GuestCartMergeBanner } from "./GuestCartMergeBanner";
-import { DevPanel } from "./DevPanel";
-import { CartSkeleton } from "./CartSkeleton";
+import { VendorGroupCard } from "./vendor-group-card";
+import { OrderSummary } from "./order-summary";
+import { EmptyCartState } from "./empty-cart-state";
+import { GuestCartMergeBanner } from "./guest-cart-merge-banner";
+import { DevPanel } from "./dev-panel";
+import { CartSkeleton } from "./cart-skeleton";
 
 export function CartView() {
   const cart = useCartStore((state) => state.cart);
@@ -61,7 +61,6 @@ export function CartView() {
     );
   }
 
-  // Error state
   if (error && !cart) {
     return (
       <div className="mx-auto max-w-3xl px-4 py-16 text-center">

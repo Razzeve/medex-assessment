@@ -44,7 +44,6 @@ export default function HomePage() {
   return (
     <div className="min-h-full bg-slate-50 py-8 px-4 sm:px-6 sm:py-12 lg:px-8">
       <div className="mx-auto max-w-6xl">
-        {/* Header Section */}
         <div className="mb-8 sm:mb-10 text-center sm:text-left">
           <div className="inline-flex max-w-full items-center gap-1.5 rounded-full bg-teal-50 px-3 py-1 text-xs font-semibold text-teal-700 ring-1 ring-inset ring-teal-600/20">
             <CheckCircle2 className="h-3.5 w-3.5 text-teal-600 shrink-0" />
@@ -58,7 +57,6 @@ export default function HomePage() {
           </p>
         </div>
 
-        {/* Responsive Grid */}
         <div className="grid grid-cols-1 gap-5 sm:gap-6 md:grid-cols-2 lg:grid-cols-3">
           {workflows.map((workflow, idx) => {
             const Icon = workflow.icon;

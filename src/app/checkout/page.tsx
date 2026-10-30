@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import { Metadata } from "next";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
-import { CheckoutView } from "@/features/cart-checkout/components/CheckoutView";
+import { CheckoutView } from "@/features/cart-checkout/components/checkout-view";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useSyncExternalStore } from "react";
 import { createPortal } from "react-dom";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -38,21 +38,17 @@ const navigationItems: NavItem[] = [
 export function Navbar() {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
+
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setMobileMenuOpen(false);
+  }
 
   // Live cart count from Zustand store (safe for SSR hydration)
   const totalCartCount = useCartTotalCount();
   const cartCount = mounted ? totalCartCount : 0;
-
-  // Client-side mount check for createPortal
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Close drawer automatically on route changes
-  useEffect(() => {
-    setMobileMenuOpen(false);
-  }, [pathname]);
 
   // Lock body scroll when mobile drawer is open
   useEffect(() => {
@@ -85,7 +81,6 @@ export function Navbar() {
     <>
       <header className="sticky top-0 z-40 border-b border-slate-200 bg-white/95 backdrop-blur-md">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          {/* Brand */}
           <Link
             href="/"
             className="flex items-center gap-2.5 font-bold text-slate-900 shrink-0 rounded-lg py-1 transition-all duration-200 ease-in-out hover:opacity-90 focus:outline-none focus-visible:ring-2 focus-visible:ring-teal-600"
@@ -99,7 +94,6 @@ export function Navbar() {
             </span>
           </Link>
 
-          {/* Desktop Navigation */}
           <nav
             className="hidden md:flex items-center gap-1 lg:gap-2"
             aria-label="Desktop Navigation"
@@ -126,7 +120,6 @@ export function Navbar() {
                   />
                   <span>{item.name}</span>
 
-                  {/* Cart badge increment */}
                   {isCart && cartCount > 0 && (
                     <span className="ml-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-teal-600 px-1.5 text-[10px] font-bold text-white shadow-xs animate-in zoom-in-75 duration-200">
                       {cartCount}
@@ -137,7 +130,6 @@ export function Navbar() {
             })}
           </nav>
 
-          {/* Mobile Right Controls: Quick Cart Link + Features Menu Drawer Trigger */}
           <div className="flex items-center gap-2 md:hidden">
             <Link
               href="/cart"
@@ -166,7 +158,6 @@ export function Navbar() {
         </div>
       </header>
 
-      {/* Mobile Drawer Portal: Rendered to document.body to escape header containing block & backdrop-blur stacking context */}
       {mounted &&
         createPortal(
           <div
@@ -174,7 +165,6 @@ export function Navbar() {
               mobileMenuOpen ? "pointer-events-auto visible" : "pointer-events-none invisible"
             }`}
           >
-            {/* Backdrop */}
             <div
               className={`fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity duration-300 ease-in-out ${
                 mobileMenuOpen ? "opacity-100" : "opacity-0"
@@ -183,7 +173,6 @@ export function Navbar() {
               aria-hidden="true"
             />
 
-            {/* Right-Side Slide-Over Drawer */}
             <div
               className={`fixed inset-y-0 right-0 z-50 flex h-full h-[100dvh] w-[85vw] max-w-[320px] flex-col bg-white shadow-2xl transition-transform duration-300 ease-in-out ${
                 mobileMenuOpen ? "translate-x-0" : "translate-x-full"
@@ -192,7 +181,6 @@ export function Navbar() {
               aria-modal="true"
               aria-label="Services Menu"
             >
-              {/* Drawer Header */}
               <div className="flex h-16 shrink-0 items-center justify-between border-b border-slate-200 px-5 bg-white">
                 <div className="flex items-center gap-2.5">
                   <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-teal-600 text-white shadow-xs">
@@ -213,7 +201,6 @@ export function Navbar() {
                 </button>
               </div>
 
-              {/* Drawer Navigation Links */}
               <nav className="flex-1 overflow-y-auto px-4 py-5 space-y-4" aria-label="Mobile Navigation">
                 <div>
                   <p className="px-1 text-xs font-semibold uppercase tracking-wider text-slate-600">
@@ -278,7 +265,6 @@ export function Navbar() {
                 </div>
               </nav>
 
-              {/* Drawer Footer */}
               <div className="shrink-0 border-t border-slate-200 bg-slate-50 p-4">
                 <div className="rounded-lg bg-teal-50/70 border border-teal-100 p-3 text-xs text-teal-800">
                   <p className="font-semibold text-teal-900">MedEx Portal</p>

@@ -26,7 +26,6 @@ export function SortAndView({
 }: SortAndViewProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs sm:flex-row sm:items-center sm:justify-between">
-      {/* Results Count & Live Announcement */}
       <div className="flex items-center justify-between sm:justify-start">
         <div aria-live="polite" className="text-sm font-medium text-slate-700">
           <span className="font-bold text-slate-900">{totalMatches}</span>{' '}
@@ -35,7 +34,6 @@ export function SortAndView({
           {providerCount === 1 ? 'provider' : 'providers'}
         </div>
 
-        {/* Mobile Filter Button (Visible on screens < lg) */}
         {onOpenMobileFilters && (
           <button
             type="button"
@@ -54,9 +52,7 @@ export function SortAndView({
         )}
       </div>
 
-      {/* Sort Options and View Switcher */}
       <div className="flex items-center justify-between gap-3 sm:justify-end">
-        {/* Sort Dropdown */}
         <div className="flex items-center gap-1.5">
           <ArrowUpDown className="h-3.5 w-3.5 text-slate-400" />
           <label htmlFor="service-sort-select" className="text-xs font-medium text-slate-500 sr-only sm:not-sr-only">
@@ -75,7 +71,6 @@ export function SortAndView({
           </select>
         </div>
 
-        {/* View Switcher Buttons */}
         <div className="flex items-center rounded-lg border border-slate-200 bg-slate-50 p-0.5">
           <button
             type="button"

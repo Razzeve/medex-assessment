@@ -19,7 +19,7 @@ import {
   isItemUnavailable,
   isItemWellnessUnpriced,
 } from "../utils/split-engine";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 
 interface CartItemRowProps {
   item: CartItem;

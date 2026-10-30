@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { UserCheck, CheckCircle2, ChevronRight, X, ArrowRight } from "lucide-react";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 
 export function GuestCartMergeBanner() {
   const guestCart = useCartStore((state) => state.guestCart);

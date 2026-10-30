@@ -48,7 +48,6 @@ export function ConflictResolutionBanner({
             <strong> Don&apos;t worry — all your information and patient details have been preserved.</strong> Please pick one of the closest available alternatives below:
           </p>
 
-          {/* Quick Select Alternative Slot Buttons */}
           {closestSlots.length > 0 && (
             <div className="mt-3">
               <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800">

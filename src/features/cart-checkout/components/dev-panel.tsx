@@ -6,7 +6,7 @@ import {
   Clock,
   AlertTriangle,
 } from "lucide-react";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 
 export function DevPanel() {
   const [isOpen, setIsOpen] = useState(false);

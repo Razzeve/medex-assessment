@@ -3,7 +3,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import {
-  Star,
   Home,
   Clock,
   Sparkles,
@@ -13,7 +12,7 @@ import {
   MapPin,
   ArrowRight,
 } from 'lucide-react';
-import { useCartStore } from '@/features/cart-checkout/store/useCartStore';
+import { useCartStore } from '@/features/cart-checkout/store/use-cart-store';
 import { EnrichedService, ViewMode, WellnessCalculatedOption } from '../types';
 import { formatPrice } from '../utils/pricing';
 
@@ -122,7 +121,6 @@ export function ServiceCard({
       }`}
     >
       <div className={`flex-1 ${isList ? 'md:max-w-xl' : ''}`}>
-        {/* Optional Provider Header if displayed standalone */}
         {showProviderHeader && (
           <div className="mb-3 flex items-center justify-between border-b border-slate-100 pb-2.5">
             <div className="flex items-center gap-1.5 text-xs text-slate-600 font-medium truncate">
@@ -138,7 +136,6 @@ export function ServiceCard({
           </div>
         )}
 
-        {/* Badges: Type & Category */}
         <div className="flex flex-wrap items-center gap-1.5">
           <span
             className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[11px] font-semibold ${
@@ -163,12 +160,10 @@ export function ServiceCard({
           )}
         </div>
 
-        {/* Title */}
         <h3 className="mt-2.5 text-base font-bold text-slate-900 group-hover:text-teal-700 transition-colors line-clamp-2">
           {service.title}
         </h3>
 
-        {/* Wellness duration selector pills */}
         {isWellness && wellnessOptions.length > 0 && (
           <div className="mt-3">
             <div className="flex items-center gap-1.5 text-xs text-slate-500">
@@ -195,7 +190,6 @@ export function ServiceCard({
         )}
       </div>
 
-      {/* Pricing & Booking Column - Redesigned to guarantee zero squishing */}
       <div
         className={`mt-4 border-t border-slate-100 pt-3 ${
           isList
@@ -204,7 +198,6 @@ export function ServiceCard({
         }`}
       >
         <div className={isList ? 'md:text-right w-full' : 'w-full'}>
-          {/* Top row of footer: Original price strikethrough & Special Offer pill tag */}
           <div className="flex flex-wrap items-center gap-1.5 min-h-[22px] mb-1">
             {isWellness && (
               <span className="text-[11px] font-medium text-slate-500">From</span>
@@ -222,7 +215,6 @@ export function ServiceCard({
             )}
           </div>
 
-          {/* Distinct row: Main bold formatted price */}
           <div className="flex items-baseline gap-1">
             <span className="text-lg font-bold text-slate-900 tracking-tight">
               {displayFinalPrice === 0 && displayOriginalPrice === 0
@@ -237,7 +229,6 @@ export function ServiceCard({
           </div>
         </div>
 
-        {/* Full-width Book Service CTA with responsive protection and feedback */}
         <div className="mt-3 w-full">
           <button
             type="button"

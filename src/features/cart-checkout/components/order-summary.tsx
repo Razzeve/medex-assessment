@@ -16,7 +16,7 @@ import {
   useSplitPackages,
   useTotalDeliveryFees,
 } from "../store/selectors";
-import { useCartStore } from "../store/useCartStore";
+import { useCartStore } from "../store/use-cart-store";
 import { calculateDiscount, validateCoupon } from "../utils/coupons";
 
 export function OrderSummary() {
@@ -62,7 +62,6 @@ export function OrderSummary() {
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs lg:sticky lg:top-20 space-y-6">
-      {/* Header */}
       <div>
         <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center justify-between">
           <span>Order Summary</span>
@@ -76,7 +75,6 @@ export function OrderSummary() {
         </p>
       </div>
 
-      {/* Item Subtotals by Currency */}
       <div className="space-y-3 border-t border-slate-100 pt-4">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Services Subtotal
@@ -95,7 +93,6 @@ export function OrderSummary() {
         )}
       </div>
 
-      {/* Fulfillment / Delivery Fees */}
       <div className="space-y-2 border-t border-slate-100 pt-4">
         <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
           <span className="flex items-center gap-1.5">
@@ -122,7 +119,6 @@ export function OrderSummary() {
         })}
       </div>
 
-      {/* Discounts Breakdown */}
       {appliedCoupon && (
         <div className="space-y-2 border-t border-slate-100 pt-4">
           <div className="flex items-center justify-between text-xs font-bold text-teal-700 uppercase tracking-wider">
@@ -146,7 +142,6 @@ export function OrderSummary() {
         </div>
       )}
 
-      {/* Coupon Form */}
       <div className="border-t border-slate-100 pt-4">
         <form onSubmit={handleApplyCoupon} className="space-y-2">
           <label htmlFor="coupon-code" className="text-xs font-semibold text-slate-700 flex items-center gap-1">
@@ -175,7 +170,6 @@ export function OrderSummary() {
         </form>
       </div>
 
-      {/* Final Settlement Total */}
       <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2.5">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Total Payable by Currency
@@ -198,7 +192,6 @@ export function OrderSummary() {
         </p>
       </div>
 
-      {/* Warnings & CTA */}
       <div className="space-y-3">
         {hasUnavailable && (
           <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 p-2.5 rounded-lg">
@@ -225,7 +218,6 @@ export function OrderSummary() {
         </Link>
       </div>
 
-      {/* Currency Educational Callout */}
       <div className="rounded-xl border border-teal-100 bg-teal-50/50 p-3.5 text-xs text-teal-900 space-y-1.5">
         <div className="flex items-center gap-1.5 font-bold text-teal-950">
           <Info className="h-4 w-4 text-teal-600 shrink-0" />

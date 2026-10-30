@@ -3,8 +3,6 @@ import {
   FilterState,
   FacetCounts,
   ProviderGroup,
-  ServiceType,
-  SortOption,
 } from '../types';
 
 /**

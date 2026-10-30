@@ -15,12 +15,13 @@ export function SearchBar({
   placeholder = 'Search services, providers, or categories (e.g. check-up, Bangkok)...',
 }: SearchBarProps) {
   const [localValue, setLocalValue] = useState(value);
+  const [prevValue, setPrevValue] = useState(value);
   const [, startTransition] = useTransition();
 
-  // Sync external changes (e.g. URL update or Reset Filters) to local input
-  useEffect(() => {
+  if (value !== prevValue) {
+    setPrevValue(value);
     setLocalValue(value);
-  }, [value]);
+  }
 
   // Debounce user keystrokes by 300ms per engineering guidelines
   useEffect(() => {

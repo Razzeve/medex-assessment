@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { Metadata } from "next";
-import { BookingSchedulerView } from "@/features/booking-scheduler/components/BookingSchedulerView";
-import { BookingSchedulerSkeleton } from "@/features/booking-scheduler/components/BookingSchedulerSkeleton";
+import { BookingSchedulerView } from "@/features/booking-scheduler/components/booking-scheduler-view";
+import { BookingSchedulerSkeleton } from "@/features/booking-scheduler/components/booking-scheduler-skeleton";
 import { PageHeader } from "@/components/layout/page-header";
 
 export const metadata: Metadata = {

@@ -14,15 +14,15 @@ import {
   RescheduleResponse
 } from "../types";
 import { PageHeader } from "@/components/layout/page-header";
-import { PractitionerCard } from "./PractitionerCard";
-import { TimezoneSelector } from "./TimezoneSelector";
-import { DatePickerCarousel } from "./DatePickerCarousel";
-import { SlotGrid } from "./SlotGrid";
-import { GroupSizeSelector } from "./GroupSizeSelector";
-import { ConflictResolutionBanner } from "./ConflictResolutionBanner";
-import { BookingConfirmationModal } from "./BookingConfirmationModal";
-import { DevPanel } from "./DevPanel";
-import { BookingSchedulerSkeleton } from "./BookingSchedulerSkeleton";
+import { PractitionerCard } from "./practitioner-card";
+import { TimezoneSelector } from "./timezone-selector";
+import { DatePickerCarousel } from "./date-picker-carousel";
+import { SlotGrid } from "./slot-grid";
+import { GroupSizeSelector } from "./group-size-selector";
+import { ConflictResolutionBanner } from "./conflict-resolution-banner";
+import { BookingConfirmationModal } from "./booking-confirmation-modal";
+import { DevPanel } from "./dev-panel";
+import { BookingSchedulerSkeleton } from "./booking-scheduler-skeleton";
 import { getCurrentDateInTimezone } from "../utils/timezone";
 import { findNextAvailableDate, formatFullDisplayDate } from "../utils/slots";
 import {
@@ -61,7 +61,6 @@ export function BookingSchedulerView() {
   const providers = useMemo(() => providerData?.providers || [], [providerData?.providers]);
   const existingBooking = useMemo(() => providerData?.existingBooking || null, [providerData?.existingBooking]);
 
-  // Selected states
   const [userSelectedProviderId, setUserSelectedProviderId] = useState<number | null>(null);
   const [userSelectedSpecialistId, setUserSelectedSpecialistId] = useState<string | null>(null);
   const [userSelectedDate, setUserSelectedDate] = useState<string | null>(null);
@@ -71,7 +70,6 @@ export function BookingSchedulerView() {
   const [groupSize, setGroupSize] = useState<number>(1);
   const [selectedSlot, setSelectedSlot] = useState<ScheduledSlot | null>(null);
 
-  // Conflict & modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [conflictError, setConflictError] = useState<{
     time: string;
@@ -80,7 +78,6 @@ export function BookingSchedulerView() {
   const [bookingSuccessData, setBookingSuccessData] = useState<BookingResponse | null>(null);
   const [rescheduleSuccessData, setRescheduleSuccessData] = useState<RescheduleResponse | null>(null);
 
-  // Derived Active Provider
   const selectedProviderId =
     userSelectedProviderId ?? (isRescheduleMode && existingBooking ? existingBooking.providerId : 48);
 
@@ -88,7 +85,6 @@ export function BookingSchedulerView() {
     return providers.find((p) => p.id === selectedProviderId) || providers[0] || null;
   }, [providers, selectedProviderId]);
 
-  // Derived Active Specialist
   const selectedSpecialistId =
     userSelectedSpecialistId ??
     (isRescheduleMode && existingBooking ? existingBooking.specialistId : activeProvider?.specialists[0]?.id || "");
@@ -102,7 +98,6 @@ export function BookingSchedulerView() {
     );
   }, [activeProvider, selectedSpecialistId]);
 
-  // Derived Active Date
   const selectedDate = useMemo(() => {
     if (userSelectedDate) return userSelectedDate;
     return activeProvider ? getCurrentDateInTimezone(activeProvider.resolvedTimezone) : "";
@@ -120,7 +115,6 @@ export function BookingSchedulerView() {
     }
   };
 
-  // Calendar 90-Day availability query
   const {
     data: calendarDays = [],
     isLoading: isLoadingCalendar,
@@ -132,7 +126,6 @@ export function BookingSchedulerView() {
     devOptions
   );
 
-  // Day slots query
   const {
     data: slotResult,
     isLoading: isLoadingSlots,
@@ -151,7 +144,6 @@ export function BookingSchedulerView() {
   const slots = slotResult?.slots || [];
   const overlapWarning = slotResult?.overlapWarning;
 
-  // Next available date helper
   const nextAvailableDay = useMemo(() => {
     return findNextAvailableDate(calendarDays, selectedDate);
   }, [calendarDays, selectedDate]);
@@ -296,7 +288,6 @@ export function BookingSchedulerView() {
 
   return (
     <div className="min-h-screen bg-slate-50 pb-20">
-      {/* Offline Alert Banner */}
       {simulateOffline && (
         <div className="sticky top-16 z-30 bg-slate-900 text-amber-300 px-4 py-2 text-xs font-semibold flex items-center justify-center gap-2 border-b border-amber-500/30">
           <WifiOff className="h-4 w-4 text-amber-400" />
@@ -304,7 +295,6 @@ export function BookingSchedulerView() {
         </div>
       )}
 
-      {/* Standardized Unified Page Header */}
       <PageHeader
         title="Appointment Scheduler & Multi-Timezone Booking"
         description="Book clinical consultations across international practitioner time zones with automatic offset conversion and conflict prevention."
@@ -316,9 +306,7 @@ export function BookingSchedulerView() {
         }
       />
 
-      {/* Main Container */}
       <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 pt-8 space-y-6">
-        {/* Reschedule Active Flow Notification */}
         {isRescheduleMode && existingBooking && (
           <aside
             role="status"
@@ -353,7 +341,6 @@ export function BookingSchedulerView() {
           </aside>
         )}
 
-        {/* Success Confirmation Toast after booking */}
         {bookingSuccessData && (
           <aside
             role="status"
@@ -405,7 +392,6 @@ export function BookingSchedulerView() {
           </aside>
         )}
 
-        {/* Success Confirmation Toast after Reschedule */}
         {rescheduleSuccessData && (
           <aside
             role="status"
@@ -443,7 +429,6 @@ export function BookingSchedulerView() {
           </aside>
         )}
 
-        {/* 409 Conflict Resolution Banner */}
         {conflictError && (
           <ConflictResolutionBanner
             conflictingSlotTime={conflictError.time}
@@ -459,7 +444,6 @@ export function BookingSchedulerView() {
           />
         )}
 
-        {/* Section 1: Practitioner Profile Card */}
         <section aria-labelledby="practitioner-details">
           <h2 id="practitioner-details" className="sr-only">
             Healthcare Practitioner &amp; Facility Profile
@@ -476,7 +460,6 @@ export function BookingSchedulerView() {
           />
         </section>
 
-        {/* Section 2: Timezone Selector & Live Clocks */}
         <section aria-labelledby="timezone-selection">
           <h2 id="timezone-selection" className="sr-only">
             Timezone Selector
@@ -489,7 +472,6 @@ export function BookingSchedulerView() {
           />
         </section>
 
-        {/* Section 3: Group Size Selector & Rules */}
         <section aria-labelledby="group-size">
           <h2 id="group-size" className="sr-only">
             Group Size Configuration
@@ -505,7 +487,6 @@ export function BookingSchedulerView() {
           />
         </section>
 
-        {/* Section 4: 90-Day Date Picker Carousel */}
         <section aria-labelledby="date-picker">
           <h2 id="date-picker" className="sr-only">
             Calendar Date Selection
@@ -522,7 +503,6 @@ export function BookingSchedulerView() {
           />
         </section>
 
-        {/* Section 5: Interactive Slot Grid grouped by Morning / Afternoon / Evening */}
         <section aria-labelledby="slot-grid">
           <div className="flex items-center justify-between mb-2">
             <div>
@@ -535,7 +515,6 @@ export function BookingSchedulerView() {
             </div>
           </div>
 
-          {/* Slot Generation Error State with Retry CTA */}
           {isSlotsError && (
             <div
               role="alert"
@@ -572,7 +551,6 @@ export function BookingSchedulerView() {
         </section>
       </main>
 
-      {/* Booking Confirmation Dialog Modal */}
       {selectedSlot && (
         <BookingConfirmationModal
           isOpen={isModalOpen}
@@ -588,7 +566,6 @@ export function BookingSchedulerView() {
         />
       )}
 
-      {/* Floating Developer Simulation Panel */}
       <DevPanel
         providers={providers}
         selectedProviderId={selectedProviderId}

@@ -37,7 +37,6 @@ export function SlotGrid({
   nextAvailableDay,
   groupSize = 1
 }: SlotGridProps) {
-  // Group slots by period
   const groupedSlots = useMemo(() => {
     const morning: ScheduledSlot[] = [];
     const afternoon: ScheduledSlot[] = [];
@@ -69,7 +68,6 @@ export function SlotGrid({
     );
   }
 
-  // Empty state handling
   const availableCount = slots.filter((s) => s.isAvailable && s.isEligibleForGroupSize).length;
   if (slots.length === 0 || availableCount === 0) {
     return (
@@ -158,7 +156,6 @@ export function SlotGrid({
                     : "border border-amber-100 bg-amber-50/30 opacity-60 cursor-not-allowed"
                 }`}
               >
-                {/* Primary: Provider Time (Hospital arrival clock) */}
                 <div>
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-teal-800 flex items-center gap-1">
@@ -175,7 +172,6 @@ export function SlotGrid({
                   </p>
                 </div>
 
-                {/* Secondary: Patient Local Time */}
                 <div className="mt-2.5 border-t border-slate-100/80 pt-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] font-medium text-slate-400">
@@ -194,7 +190,6 @@ export function SlotGrid({
                   </p>
                 </div>
 
-                {/* Status Badges for unavailable states */}
                 {!isSelectable && (
                   <div className="mt-2 text-center">
                     {slot.isBooked ? (

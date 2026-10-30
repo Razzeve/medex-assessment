@@ -158,7 +158,6 @@ export function FilterSidebar({
         )}
       </div>
 
-      {/* 1. Service Types (Multi-select) */}
       <section className="border-b border-slate-100 pb-5">
         <h3 className="mb-3 text-xs font-bold uppercase tracking-wider text-slate-500">
           Service Type
@@ -203,7 +202,6 @@ export function FilterSidebar({
         </div>
       </section>
 
-      {/* 2. Category Hierarchy Tree */}
       <section className="border-b border-slate-100 pb-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -299,7 +297,6 @@ export function FilterSidebar({
         </div>
       </section>
 
-      {/* 3. Location (Country & City) */}
       <section className="border-b border-slate-100 pb-5">
         <div className="mb-3 flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -383,7 +380,6 @@ export function FilterSidebar({
             </div>
           )}
 
-        {/* City Filter */}
         {availableCities.length > 0 && (
           <div className="space-y-1.5">
             <div className="text-[11px] font-medium text-slate-500 mb-1">
@@ -430,7 +426,6 @@ export function FilterSidebar({
         )}
       </section>
 
-      {/* 4. Price Range & Multi-Currency Architecture */}
       <section className="border-b border-slate-100 pb-5">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -455,7 +450,6 @@ export function FilterSidebar({
           MedEx prevents silent currency conversions. Filter in provider&apos;s native currency:
         </p>
 
-        {/* Currency Switcher */}
         <div className="mb-3 flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1 text-xs font-semibold">
           {(['ALL', 'THB', 'NPR', 'INR'] as const).map((curr) => (
             <button
@@ -475,7 +469,6 @@ export function FilterSidebar({
           ))}
         </div>
 
-        {/* Min - Max Inputs */}
         <div className="flex items-center gap-2">
           <div className="relative flex-1">
             <span className="absolute inset-y-0 left-0 flex items-center pl-2 text-[11px] font-semibold text-slate-400">
@@ -530,7 +523,6 @@ export function FilterSidebar({
         </div>
       </section>
 
-      {/* 5. Providers Searchable Multi-Select */}
       <section className="border-b border-slate-100 pb-5">
         <div className="mb-2 flex items-center justify-between">
           <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500">
@@ -551,7 +543,6 @@ export function FilterSidebar({
           )}
         </div>
 
-        {/* Inline Provider Search */}
         <div className="relative mb-2">
           <Search className="pointer-events-none absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
@@ -603,7 +594,6 @@ export function FilterSidebar({
         </div>
       </section>
 
-      {/* 6. Home Test Availability Toggle */}
       <section>
         <label className="flex cursor-pointer items-center justify-between">
           <div className="flex items-center gap-2.5">

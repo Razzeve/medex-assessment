@@ -32,14 +32,19 @@ export function MobileFilterDrawer({
   currentFilters,
   onApplyFilters,
 }: MobileFilterDrawerProps) {
-  // Local pending filters while drawer is open
   const [pendingFilters, setPendingFilters] = useState<FilterState>(currentFilters);
+  const [prevIsOpen, setPrevIsOpen] = useState(isOpen);
 
-  // Sync when drawer opens
-  useEffect(() => {
+  if (isOpen !== prevIsOpen) {
+    setPrevIsOpen(isOpen);
     if (isOpen) {
       setPendingFilters(currentFilters);
-      // Prevent body scrolling
+    }
+  }
+
+  // Prevent body scrolling when mobile drawer is open
+  useEffect(() => {
+    if (isOpen) {
       document.body.style.overflow = 'hidden';
     } else {
       document.body.style.overflow = '';
@@ -47,7 +52,7 @@ export function MobileFilterDrawer({
     return () => {
       document.body.style.overflow = '';
     };
-  }, [isOpen, currentFilters]);
+  }, [isOpen]);
 
   // Compute live facets and result count for pending selection
   const pendingFacets = useMemo(() => {
@@ -186,15 +191,12 @@ export function MobileFilterDrawer({
       aria-labelledby="mobile-filter-title"
       className="fixed inset-0 z-50 flex lg:hidden"
     >
-      {/* Backdrop */}
       <div
         onClick={onClose}
         className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs transition-opacity"
       />
 
-      {/* Drawer Container */}
       <div className="relative ml-auto flex h-full w-full max-w-md flex-col bg-white shadow-2xl">
-        {/* Drawer Header */}
         <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
           <h2 id="mobile-filter-title" className="text-base font-bold text-slate-900">
             Filters
@@ -219,7 +221,6 @@ export function MobileFilterDrawer({
           </div>
         </div>
 
-        {/* Drawer Scrollable Content */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           <FilterSidebar
             categories={categories}
@@ -239,7 +240,6 @@ export function MobileFilterDrawer({
           />
         </div>
 
-        {/* Drawer Sticky Footer */}
         <div className="border-t border-slate-200 bg-white p-4 shadow-lg">
           <button
             type="button"
