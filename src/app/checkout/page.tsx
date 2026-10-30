@@ -17,8 +17,7 @@ export default function CheckoutPage() {
       fallback={
         <div className="min-h-screen bg-slate-50">
           <PageHeader
-            containerClassName="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8"
-            title="Healthcare Cart & Split Fulfillment"
+            title="Multi-Provider Split Checkout"
             description="Review multi-provider medical orders, fulfillment splits, delivery fees, and proceed through unified checkout."
             breadcrumbs={
               <Link
@@ -32,14 +31,14 @@ export default function CheckoutPage() {
             actions={
               <Link
                 href="/services"
-                className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
+                className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 transition-colors"
               >
                 <span>Add More Services</span>
                 <ArrowRight className="h-3.5 w-3.5" />
               </Link>
             }
           />
-          <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
+          <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8 space-y-6">
             <div className="h-20 rounded-2xl border border-slate-200 bg-white p-5 flex items-center justify-between">
               <div className="h-6 w-48 rounded-lg bg-slate-200 animate-pulse" />
               <div className="h-8 w-24 rounded-lg bg-slate-200 animate-pulse" />

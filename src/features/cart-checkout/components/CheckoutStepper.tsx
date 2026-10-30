@@ -12,13 +12,9 @@ import {
   RotateCw,
   ShoppingBag,
   ShieldAlert,
-  User,
-  MapPin,
-  Mail,
-  Phone,
-  FileText,
-  Copy,
-  Check,
+  ShieldCheck,
+  Package,
+  Layers,
 } from "lucide-react";
 import { useCartStore } from "../store/useCartStore";
 import { useSplitPackages } from "../store/selectors";
@@ -29,14 +25,8 @@ import {
   SplitPackage,
 } from "../types";
 import { formatCurrency, formatSubtotals } from "../utils/currency";
-
-interface FormErrors {
-  fullName?: string;
-  email?: string;
-  phone?: string;
-  addressLine?: string;
-  city?: string;
-}
+import { PatientDetailsForm, FormErrors } from "./PatientDetailsForm";
+import { PaymentConfirmation } from "./PaymentConfirmation";
 
 export function CheckoutStepper() {
   const searchParams = useSearchParams();
@@ -44,19 +34,28 @@ export function CheckoutStepper() {
 
   const allPackages = useSplitPackages();
   const checkoutAll = useCartStore((state) => state.checkoutAll);
+  const checkoutGroup = useCartStore((state) => state.checkoutGroup);
   const retryFailedGroupCheckout = useCartStore(
     (state) => state.retryFailedGroupCheckout
   );
   const checkoutSession = useCartStore((state) => state.checkoutSession);
-  const orders = useCartStore((state) => state.orders);
 
   // Filter packages if single group checkout is requested
   const activePackages = selectedGroupParam
     ? allPackages.filter((p) => p.groupType === selectedGroupParam)
     : allPackages;
 
-  // Step state: 1 (Breakdown) -> 2 (Patient Details) -> 3 (Payment & Order Execution)
+  const isolatedPackage = selectedGroupParam
+    ? allPackages.find((p) => p.groupType === selectedGroupParam)
+    : null;
+
+  // Step state: 1 (Review) -> 2 (Patient Details) -> 3 (Payment) -> Success
   const [currentStep, setCurrentStep] = useState<1 | 2 | 3>(1);
+  const [isSuccessView, setIsSuccessView] = useState(false);
+  const [placedOrders, setPlacedOrders] = useState<CheckoutOrder[]>([]);
+
+  // Realistic Simulated Loading Spinner state
+  const [isExecutingOrder, setIsExecutingOrder] = useState(false);
 
   // Form State
   const [patientDetails, setPatientDetails] = useState<PatientDetails>({
@@ -67,6 +66,7 @@ export function CheckoutStepper() {
     city: "Bangkok",
     postalCode: "10110",
     country: "Thailand",
+    dateOfBirth: "1990-05-14",
     gender: "male",
     notes: "Please call upon arrival for gate security verification.",
   });
@@ -76,9 +76,11 @@ export function CheckoutStepper() {
   // Payment method selection per group
   const [paymentMethods, setPaymentMethods] = useState<Record<string, PaymentMethod>>({});
 
+  // Active review tab for unified checkout
+  const [selectedReviewTab, setSelectedReviewTab] = useState<string>("all");
+
   // Track retry states
   const [retryingGroup, setRetryingGroup] = useState<string | null>(null);
-  const [copiedOrderId, setCopiedOrderId] = useState<string | null>(null);
 
   const getPaymentMethod = (groupType: string): PaymentMethod => {
     return paymentMethods[groupType] || "card";
@@ -88,27 +90,55 @@ export function CheckoutStepper() {
     setPaymentMethods((prev) => ({ ...prev, [groupType]: method }));
   };
 
-  // Step 2 Form Validation
+  // Step 2 Form Validation (Sensible requirements based on service type)
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
-    if (!patientDetails.fullName.trim()) {
-      errors.fullName = "Full patient name is required";
-    }
-    if (!patientDetails.email.trim() || !patientDetails.email.includes("@")) {
-      errors.email = "Valid email address is required for digital receipts";
-    }
-    if (!patientDetails.phone.trim()) {
-      errors.phone = "Phone number is required for dispatch coordination";
+
+    // 1. General Legal Patient Identity & Contact
+    if (!patientDetails.fullName?.trim()) {
+      errors.fullName = "Patient full legal name is required";
     }
 
-    const needsAddress = activePackages.some(
-      (p) => p.fulfillmentType === "lab_sample_collection"
-    );
-    if (needsAddress && !patientDetails.addressLine?.trim()) {
-      errors.addressLine = "Physical dispatch address is required for home lab sample collection";
+    if (!patientDetails.email?.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(patientDetails.email)) {
+      errors.email = "Valid email address is required for digital receipts and passes";
     }
-    if (needsAddress && !patientDetails.city?.trim()) {
-      errors.city = "City is required";
+
+    if (!patientDetails.phone?.trim()) {
+      errors.phone = "Phone number is required for dispatch & appointment confirmation";
+    }
+
+    // 2. Physical Items Validation (Dispatch Address)
+    const hasPhysical = activePackages.some(
+      (p) =>
+        p.fulfillmentType === "lab_sample_collection" ||
+        p.groupType === "lab_test"
+    );
+
+    if (hasPhysical) {
+      if (!patientDetails.addressLine?.trim()) {
+        errors.addressLine = "Physical dispatch address is required for home sample collection";
+      }
+      if (!patientDetails.city?.trim()) {
+        errors.city = "City is required for courier & phlebotomist routing";
+      }
+    }
+
+    // 3. Lab / Clinical Consultation Items (DOB & Gender for reference ranges)
+    const hasLabOrConsultation = activePackages.some(
+      (p) =>
+        p.groupType === "lab_test" ||
+        p.groupType === "package" ||
+        p.groupType === "service" ||
+        p.groupType === "wellness"
+    );
+
+    if (hasLabOrConsultation) {
+      if (!patientDetails.dateOfBirth?.trim()) {
+        errors.dateOfBirth = "Date of Birth is required for clinical reference ranges";
+      }
+      if (!patientDetails.gender) {
+        errors.gender = "Biological sex is required for medical evaluation";
+      }
     }
 
     setFormErrors(errors);
@@ -125,14 +155,37 @@ export function CheckoutStepper() {
     }
   };
 
-  // Step 3 Checkout All Execution
+  // Step 3 Checkout Execution with realistic 1-2s simulated loading spinner
   const handleExecuteCheckout = async () => {
     const eligible = activePackages.filter((p) => p.eligibleForCheckout);
     if (eligible.length === 0) return;
 
-    // Use selected payment method of first package as default
-    const defaultMethod = getPaymentMethod(eligible[0].groupType);
-    await checkoutAll(eligible, defaultMethod, patientDetails);
+    setIsExecutingOrder(true);
+
+    try {
+      // Simulate realistic authorization delay (1200ms) for professional UX feel
+      await new Promise((resolve) => setTimeout(resolve, 1200));
+
+      if (isolatedPackage) {
+        // Individual package checkout
+        const method = getPaymentMethod(isolatedPackage.groupType);
+        const order = await checkoutGroup(isolatedPackage, method, patientDetails);
+        setPlacedOrders([order]);
+        setIsSuccessView(true);
+      } else {
+        // Unified checkout across all packages
+        const defaultMethod = getPaymentMethod(eligible[0].groupType);
+        const { succeeded } = await checkoutAll(eligible, defaultMethod, patientDetails);
+        if (succeeded.length > 0) {
+          setPlacedOrders(succeeded);
+          setIsSuccessView(true);
+        }
+      }
+    } catch {
+      // Errors handled by Zustand store checkoutSession.checkoutErrors
+    } finally {
+      setIsExecutingOrder(false);
+    }
   };
 
   // Retry a failed package with same idempotency key
@@ -140,7 +193,8 @@ export function CheckoutStepper() {
     setRetryingGroup(pkg.groupType);
     try {
       const method = getPaymentMethod(pkg.groupType);
-      await retryFailedGroupCheckout(pkg, method, patientDetails);
+      const order = await retryFailedGroupCheckout(pkg, method, patientDetails);
+      setPlacedOrders((prev) => [...prev, order]);
     } catch {
       // Error handled by store
     } finally {
@@ -148,24 +202,135 @@ export function CheckoutStepper() {
     }
   };
 
-  const handleCopyOrderId = (id: string) => {
-    navigator.clipboard.writeText(id);
-    setCopiedOrderId(id);
-    setTimeout(() => setCopiedOrderId(null), 2000);
-  };
+  // If order was successfully placed, render PaymentConfirmation state
+  if (isSuccessView && placedOrders.length > 0) {
+    const remainingCount = allPackages.filter(
+      (p) => !placedOrders.some((o) => o.groupType === p.groupType)
+    ).length;
 
-  // Check how many orders are completed for this session
-  const completedOrdersList: CheckoutOrder[] = Object.values(orders);
+    return (
+      <PaymentConfirmation
+        orders={placedOrders}
+        remainingPackagesCount={remainingCount}
+      />
+    );
+  }
+
+  // Handle case where specific group parameter was requested but not found or empty
+  if (selectedGroupParam && activePackages.length === 0) {
+    return (
+      <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center space-y-4">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+          <AlertCircle className="h-7 w-7" />
+        </div>
+        <h3 className="text-lg font-bold text-slate-900">
+          Package &ldquo;{selectedGroupParam}&rdquo; Not Found in Cart
+        </h3>
+        <p className="text-xs text-slate-500 max-w-md mx-auto">
+          This fulfillment package may have already been ordered or removed from your cart.
+        </p>
+        <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+          <Link
+            href="/checkout"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-bold text-white shadow-sm hover:bg-teal-700 transition-colors"
+          >
+            <Layers className="h-4 w-4" />
+            <span>Checkout All Active Packages</span>
+          </Link>
+          <Link
+            href="/cart"
+            className="inline-flex min-h-[44px] items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 transition-colors"
+          >
+            <ShoppingBag className="h-4 w-4" />
+            <span>Return to Cart</span>
+          </Link>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="space-y-8">
-      {/* Stepper Progress Bar */}
-      <nav aria-label="Checkout Navigation" className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs">
-        <ol className="flex items-center justify-between sm:justify-around text-xs font-semibold">
+    <div className="space-y-6 sm:space-y-8">
+      {/* Group Isolation Banner when ?group=[id] is active */}
+      {isolatedPackage && (
+        <div className="rounded-2xl border border-teal-200 bg-teal-50/80 p-4 sm:p-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+          <div className="flex items-center gap-3">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white">
+              <Package className="h-5 w-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-teal-950 uppercase tracking-wide">
+                  Checking out:
+                </span>
+                <span className="text-sm font-bold text-teal-900">
+                  {isolatedPackage.title}
+                </span>
+              </div>
+              <p className="text-xs text-teal-700 mt-0.5">
+                Provider: <strong>{isolatedPackage.providerName}</strong> • Other packages remain safely in your cart.
+              </p>
+            </div>
+          </div>
+
+          <Link
+            href="/checkout"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-teal-300 bg-white px-4 py-2 text-xs font-bold text-teal-800 shadow-2xs hover:bg-teal-50 transition-colors shrink-0"
+          >
+            <Layers className="h-3.5 w-3.5" />
+            <span>Checkout All Packages</span>
+          </Link>
+        </div>
+      )}
+
+      {/* Responsive Adaptive Stepper Progress Bar */}
+      <nav
+        aria-label="Checkout Progress Navigation"
+        className="rounded-2xl border border-slate-200 bg-white p-3.5 sm:p-4 shadow-xs"
+      >
+        {/* Mobile View: Compact dots & current step label (< 640px) */}
+        <div className="flex sm:hidden items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-teal-600 text-xs font-bold text-white shadow-2xs">
+              {currentStep}
+            </span>
+            <div>
+              <div className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
+                Step {currentStep} of 3
+              </div>
+              <div className="text-xs font-bold text-slate-900">
+                {currentStep === 1
+                  ? "Split Package Review"
+                  : currentStep === 2
+                  ? "Patient & Delivery Details"
+                  : "Payment & Confirmation"}
+              </div>
+            </div>
+          </div>
+
+          {/* Compact 3 Dots indicator */}
+          <div className="flex items-center gap-1.5">
+            {[1, 2, 3].map((step) => (
+              <div
+                key={step}
+                className={`h-2.5 rounded-full transition-all ${
+                  step === currentStep
+                    ? "w-6 bg-teal-600"
+                    : step < currentStep
+                    ? "w-2.5 bg-teal-400"
+                    : "w-2.5 bg-slate-200"
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* Desktop / Tablet View: Full Step Indicators (>= 640px) */}
+        <ol className="hidden sm:flex items-center justify-between text-xs font-semibold">
           {/* Step 1 */}
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2.5">
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
                 currentStep > 1
                   ? "bg-teal-600 text-white"
                   : currentStep === 1
@@ -180,12 +345,12 @@ export function CheckoutStepper() {
             </span>
           </li>
 
-          <div className="h-0.5 w-8 sm:w-16 bg-slate-200" />
+          <div className="h-0.5 flex-1 max-w-[80px] bg-slate-200 mx-2" />
 
           {/* Step 2 */}
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2.5">
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
                 currentStep > 2
                   ? "bg-teal-600 text-white"
                   : currentStep === 2
@@ -196,16 +361,16 @@ export function CheckoutStepper() {
               {currentStep > 2 ? <CheckCircle2 className="h-4 w-4" /> : "2"}
             </span>
             <span className={currentStep === 2 ? "text-slate-900 font-bold" : "text-slate-500"}>
-              Patient & Address
+              Patient &amp; Delivery
             </span>
           </li>
 
-          <div className="h-0.5 w-8 sm:w-16 bg-slate-200" />
+          <div className="h-0.5 flex-1 max-w-[80px] bg-slate-200 mx-2" />
 
           {/* Step 3 */}
-          <li className="flex items-center gap-2">
+          <li className="flex items-center gap-2.5">
             <span
-              className={`flex h-7 w-7 items-center justify-center rounded-full text-xs ${
+              className={`flex h-8 w-8 items-center justify-center rounded-full text-xs font-bold transition-all ${
                 currentStep === 3
                   ? "bg-teal-600 text-white ring-4 ring-teal-100"
                   : "bg-slate-100 text-slate-500"
@@ -214,7 +379,7 @@ export function CheckoutStepper() {
               3
             </span>
             <span className={currentStep === 3 ? "text-slate-900 font-bold" : "text-slate-500"}>
-              Payment & Confirmation
+              Payment &amp; Confirmation
             </span>
           </li>
         </ol>
@@ -225,100 +390,145 @@ export function CheckoutStepper() {
       {/* ============================================================ */}
       {currentStep === 1 && (
         <div className="space-y-6">
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
                 Step 1: Multi-Provider Package Breakdown
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                Each category is dispatched independently by accredited providers in their local currencies.
+                Each provider fulfills orders autonomously in their local currency.
               </p>
             </div>
             <Link
               href="/cart"
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-teal-600 hover:text-teal-700"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Modify Cart Items</span>
             </Link>
           </div>
 
-          <div className="grid gap-6">
-            {activePackages.map((pkg) => {
-              const subtotalList = formatSubtotals(pkg.subtotals);
-              return (
-                <div
+          {/* Unified Checkout Tabs (if multiple packages) */}
+          {!selectedGroupParam && activePackages.length > 1 && (
+            <div className="flex flex-wrap gap-2 border-b border-slate-200 pb-3">
+              <button
+                type="button"
+                onClick={() => setSelectedReviewTab("all")}
+                className={`min-h-[44px] rounded-xl px-4 py-2 text-xs font-bold transition-all ${
+                  selectedReviewTab === "all"
+                    ? "bg-slate-900 text-white shadow-xs"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                All Packages ({activePackages.length})
+              </button>
+              {activePackages.map((pkg) => (
+                <button
                   key={pkg.id}
-                  className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"
+                  type="button"
+                  onClick={() => setSelectedReviewTab(pkg.groupType)}
+                  className={`min-h-[44px] rounded-xl px-4 py-2 text-xs font-semibold transition-all ${
+                    selectedReviewTab === pkg.groupType
+                      ? "bg-teal-600 text-white shadow-xs font-bold"
+                      : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                  }`}
                 >
-                  <div className="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="font-bold text-slate-900 text-base">{pkg.title}</span>
-                        <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
-                          {pkg.groupType.toUpperCase()}
-                        </span>
+                  {pkg.badgeLabel}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Packages Display */}
+          <div className="grid gap-6">
+            {activePackages
+              .filter(
+                (pkg) =>
+                  selectedReviewTab === "all" ||
+                  selectedReviewTab === pkg.groupType ||
+                  selectedGroupParam
+              )
+              .map((pkg) => {
+                const subtotalList = formatSubtotals(pkg.subtotals);
+
+                return (
+                  <div
+                    key={pkg.id}
+                    className="rounded-2xl border border-slate-200 bg-white p-4 sm:p-5 shadow-xs space-y-4"
+                  >
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="font-bold text-slate-900 text-base">{pkg.title}</span>
+                          <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-xs font-semibold text-slate-700">
+                            {pkg.groupType.toUpperCase()}
+                          </span>
+                        </div>
+                        <p className="text-xs text-slate-500 mt-0.5">
+                          Fulfillment Partner: <strong className="text-slate-800">{pkg.providerName}</strong>
+                        </p>
                       </div>
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Fulfillment Partner: <strong className="text-slate-700">{pkg.providerName}</strong>
-                      </p>
-                    </div>
 
-                    <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-                      <Clock className="h-3.5 w-3.5 text-teal-600" />
-                      <span>{pkg.estimatedTimeline}</span>
-                    </div>
-                  </div>
-
-                  {/* Items Summary Table */}
-                  <div className="space-y-2">
-                    {pkg.items.map((item) => (
-                      <div
-                        key={item.id}
-                        className="flex items-center justify-between text-xs text-slate-700 py-1"
-                      >
-                        <span className="font-medium truncate max-w-sm">
-                          {item.quantity}x {item.product.title || "Service"}
-                        </span>
-                        <span className="font-semibold text-slate-900 shrink-0">
-                          {item.product.currency}{" "}
-                          {item.product.price ? item.product.price * item.quantity : "Selected Option"}
-                        </span>
+                      <div className="inline-flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200 self-start sm:self-auto">
+                        <Clock className="h-3.5 w-3.5 text-teal-600 shrink-0" />
+                        <span>{pkg.estimatedTimeline}</span>
                       </div>
-                    ))}
-                  </div>
+                    </div>
 
-                  {/* Subtotal & Delivery per currency */}
-                  <div className="border-t border-slate-100 pt-3 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/70 p-3 rounded-xl">
-                    <span className="font-semibold text-slate-600">Settlement Total:</span>
-                    <div className="flex flex-wrap gap-2">
-                      {subtotalList.map(({ currency, amount }) => {
-                        const fee = pkg.deliveryFees[currency] ?? 0;
-                        const total = pkg.totalAmounts[currency] ?? amount;
-                        return (
-                          <div
-                            key={currency}
-                            className="rounded-md bg-white border border-slate-200 px-2.5 py-1 font-bold text-slate-900"
-                          >
-                            {formatCurrency(total, currency)}{" "}
-                            <span className="text-[10px] font-normal text-slate-500">
-                              (incl. {fee > 0 ? formatCurrency(fee, currency) : "Free"} dispatch)
-                            </span>
-                          </div>
-                        );
-                      })}
+                    {/* Items Summary Table */}
+                    <div className="space-y-2">
+                      {pkg.items.map((item) => (
+                        <div
+                          key={item.id}
+                          className="flex items-center justify-between text-xs text-slate-700 py-1"
+                        >
+                          <span className="font-medium truncate max-w-sm">
+                            {item.quantity}x {item.product.title || "Service"}
+                          </span>
+                          <span className="font-semibold text-slate-900 shrink-0">
+                            {item.product.currency}{" "}
+                            {item.product.price
+                              ? formatCurrency(
+                                  item.product.price * item.quantity,
+                                  item.product.currency || "THB"
+                                )
+                              : "Selected Option"}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Subtotal & Delivery per currency */}
+                    <div className="border-t border-slate-100 pt-3 flex flex-wrap items-center justify-between gap-3 text-xs bg-slate-50/70 p-3 rounded-xl">
+                      <span className="font-semibold text-slate-600">Settlement Total:</span>
+                      <div className="flex flex-wrap gap-2">
+                        {subtotalList.map(({ currency, amount }) => {
+                          const fee = pkg.deliveryFees[currency] ?? 0;
+                          const total = pkg.totalAmounts[currency] ?? amount;
+                          return (
+                            <div
+                              key={currency}
+                              className="rounded-lg bg-white border border-slate-200 px-3 py-1.5 font-bold text-slate-900 shadow-2xs"
+                            >
+                              {formatCurrency(total, currency)}{" "}
+                              <span className="text-[11px] font-normal text-slate-500">
+                                (incl. {fee > 0 ? formatCurrency(fee, currency) : "Free"} dispatch)
+                              </span>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
           </div>
 
           <div className="flex justify-end pt-4">
             <button
               type="button"
               onClick={handleNextFromStep1}
-              className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-teal-700 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
+              className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-teal-600 px-7 py-3 text-sm font-bold text-white shadow-md hover:bg-teal-700 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
             >
               <span>Continue to Patient Details</span>
               <ArrowRight className="h-4 w-4" />
@@ -335,243 +545,53 @@ export function CheckoutStepper() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Step 2: Patient Profile & Fulfillment Coordination
+                Step 2: Patient Profile &amp; Fulfillment Coordination
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                Clinical results, doctor passes, and sample phlebotomists will be routed to this profile.
+                Clinical passes, doctor passes, and sample dispatch will be registered to this profile.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setCurrentStep(1)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back to Packages</span>
             </button>
           </div>
 
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleNextFromStep2();
-            }}
-            className="rounded-2xl border border-slate-200 bg-white p-6 shadow-xs space-y-5"
-          >
-            {/* Full Name & Email */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                  <User className="h-3.5 w-3.5 text-teal-600" />
-                  Patient Full Legal Name *
-                </label>
-                <input
-                  type="text"
-                  value={patientDetails.fullName}
-                  onChange={(e) =>
-                    setPatientDetails({ ...patientDetails, fullName: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  placeholder="e.g. Somchai Prasert"
-                />
-                {formErrors.fullName && (
-                  <p className="mt-1 text-xs text-rose-600">{formErrors.fullName}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                  <Mail className="h-3.5 w-3.5 text-teal-600" />
-                  Email Address for Digital Pass & Reports *
-                </label>
-                <input
-                  type="email"
-                  value={patientDetails.email}
-                  onChange={(e) =>
-                    setPatientDetails({ ...patientDetails, email: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  placeholder="patient@email.com"
-                />
-                {formErrors.email && (
-                  <p className="mt-1 text-xs text-rose-600">{formErrors.email}</p>
-                )}
-              </div>
-            </div>
-
-            {/* Phone & Gender */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1 flex items-center gap-1">
-                  <Phone className="h-3.5 w-3.5 text-teal-600" />
-                  Phone Number (with country code) *
-                </label>
-                <input
-                  type="tel"
-                  value={patientDetails.phone}
-                  onChange={(e) =>
-                    setPatientDetails({ ...patientDetails, phone: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  placeholder="+66 81 234 5678"
-                />
-                {formErrors.phone && (
-                  <p className="mt-1 text-xs text-rose-600">{formErrors.phone}</p>
-                )}
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Biological Sex for Lab Reference Ranges
-                </label>
-                <select
-                  value={patientDetails.gender}
-                  onChange={(e) =>
-                    setPatientDetails({
-                      ...patientDetails,
-                      gender: e.target.value as "male" | "female" | "other",
-                    })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                >
-                  <option value="male">Male</option>
-                  <option value="female">Female</option>
-                  <option value="other">Other / Prefer not to say</option>
-                </select>
-              </div>
-            </div>
-
-            {/* Address Details (for sample dispatch) */}
-            <div className="border-t border-slate-100 pt-4 space-y-4">
-              <div className="text-xs font-bold text-slate-800 flex items-center gap-1.5 uppercase tracking-wider">
-                <MapPin className="h-4 w-4 text-teal-600" />
-                Physical Address for Diagnostic Collection & Delivery
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
-                  Street Address & Unit / Floor
-                </label>
-                <input
-                  type="text"
-                  value={patientDetails.addressLine || ""}
-                  onChange={(e) =>
-                    setPatientDetails({ ...patientDetails, addressLine: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  placeholder="e.g. 124 Sukhumvit Soi 21"
-                />
-                {formErrors.addressLine && (
-                  <p className="mt-1 text-xs text-rose-600">{formErrors.addressLine}</p>
-                )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    City
-                  </label>
-                  <input
-                    type="text"
-                    value={patientDetails.city || ""}
-                    onChange={(e) =>
-                      setPatientDetails({ ...patientDetails, city: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    placeholder="Bangkok"
-                  />
-                  {formErrors.city && (
-                    <p className="mt-1 text-xs text-rose-600">{formErrors.city}</p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Postal Code
-                  </label>
-                  <input
-                    type="text"
-                    value={patientDetails.postalCode || ""}
-                    onChange={(e) =>
-                      setPatientDetails({ ...patientDetails, postalCode: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    placeholder="10110"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">
-                    Country
-                  </label>
-                  <input
-                    type="text"
-                    value={patientDetails.country || ""}
-                    onChange={(e) =>
-                      setPatientDetails({ ...patientDetails, country: e.target.value })
-                    }
-                    className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                    placeholder="Thailand"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1">
-                  <FileText className="h-3.5 w-3.5 text-slate-400" />
-                  Special Medical or Phlebotomist Dispatch Notes (Optional)
-                </label>
-                <textarea
-                  rows={2}
-                  value={patientDetails.notes || ""}
-                  onChange={(e) =>
-                    setPatientDetails({ ...patientDetails, notes: e.target.value })
-                  }
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm text-slate-900 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
-                  placeholder="e.g. Patient requires morning fasting blood draw; gate code 4092."
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-between items-center pt-4 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => setCurrentStep(1)}
-                className="text-xs font-semibold text-slate-600 hover:text-slate-900"
-              >
-                Back to Split Review
-              </button>
-
-              <button
-                type="submit"
-                className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-teal-700 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
-              >
-                <span>Proceed to Payment Review</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
-          </form>
+          <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs">
+            <PatientDetailsForm
+              patientDetails={patientDetails}
+              onChange={setPatientDetails}
+              errors={formErrors}
+              activePackages={activePackages}
+              onSubmit={handleNextFromStep2}
+              onBack={() => setCurrentStep(1)}
+            />
+          </div>
         </div>
       )}
 
       {/* ============================================================ */}
-      {/* STEP 3: Payment & Split Execution (Handles Partial Failure) */}
+      {/* STEP 3: Payment & Split Execution */}
       {/* ============================================================ */}
       {currentStep === 3 && (
         <div className="space-y-6">
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold tracking-tight text-slate-900">
-                Step 3: Multi-Package Settlement & Execution
+                Step 3: Multi-Package Settlement &amp; Execution
               </h2>
               <p className="mt-1 text-xs text-slate-500">
-                Configure discrete payment methods per provider. Each provider transaction is protected by an idempotency key.
+                Configure payment method per provider. Each transaction is protected by idempotency.
               </p>
             </div>
             <button
               type="button"
               onClick={() => setCurrentStep(2)}
-              className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
+              className="inline-flex min-h-[44px] items-center gap-1.5 text-xs font-semibold text-slate-600 hover:text-slate-900"
             >
               <ArrowLeft className="h-3.5 w-3.5" />
               <span>Back to Patient Profile</span>
@@ -585,18 +605,11 @@ export function CheckoutStepper() {
               const groupError = checkoutSession.checkoutErrors[pkg.groupType];
               const isRetrying = retryingGroup === pkg.groupType;
 
-              // Check if order already completed for this package
-              const completedOrder = completedOrdersList.find(
-                (o) => o.groupType === pkg.groupType
-              );
-
               return (
                 <div
                   key={pkg.id}
                   className={`rounded-2xl border p-5 shadow-xs transition-all ${
-                    completedOrder
-                      ? "border-emerald-300 bg-emerald-50/50"
-                      : groupError
+                    groupError
                       ? "border-rose-300 bg-rose-50/40"
                       : "border-slate-200 bg-white"
                   }`}
@@ -616,12 +629,7 @@ export function CheckoutStepper() {
 
                     {/* Status Badge */}
                     <div>
-                      {completedOrder ? (
-                        <div className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800">
-                          <CheckCircle2 className="h-4 w-4 text-emerald-600" />
-                          <span>Confirmed: #{completedOrder.orderId}</span>
-                        </div>
-                      ) : groupError ? (
+                      {groupError ? (
                         <div className="inline-flex items-center gap-1.5 rounded-full bg-rose-100 px-3 py-1 text-xs font-bold text-rose-800">
                           <ShieldAlert className="h-4 w-4 text-rose-600" />
                           <span>Checkout Failed</span>
@@ -635,58 +643,56 @@ export function CheckoutStepper() {
                     </div>
                   </div>
 
-                  {/* Payment Method Selector if not yet ordered */}
-                  {!completedOrder && (
-                    <div className="mt-4 space-y-3">
-                      <div className="text-xs font-semibold text-slate-700">
-                        Select Payment Method for {pkg.title}:
-                      </div>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                        <button
-                          type="button"
-                          onClick={() => setGroupPaymentMethod(pkg.groupType, "card")}
-                          className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${
-                            currentMethod === "card"
-                              ? "border-teal-600 bg-teal-50/70 ring-1 ring-teal-500"
-                              : "border-slate-200 bg-white hover:border-slate-300"
-                          }`}
-                        >
-                          <CreditCard className={`h-5 w-5 ${currentMethod === "card" ? "text-teal-600" : "text-slate-400"}`} />
-                          <div>
-                            <div className="text-xs font-bold text-slate-900">
-                              Direct Online Card Payment
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              Instant settlement in provider currency
-                            </div>
-                          </div>
-                        </button>
-
-                        <button
-                          type="button"
-                          onClick={() => setGroupPaymentMethod(pkg.groupType, "pay_at_clinic")}
-                          className={`flex items-center gap-3 rounded-xl border p-3 text-left transition-all ${
-                            currentMethod === "pay_at_clinic"
-                              ? "border-teal-600 bg-teal-50/70 ring-1 ring-teal-500"
-                              : "border-slate-200 bg-white hover:border-slate-300"
-                          }`}
-                        >
-                          <Building className={`h-5 w-5 ${currentMethod === "pay_at_clinic" ? "text-teal-600" : "text-slate-400"}`} />
-                          <div>
-                            <div className="text-xs font-bold text-slate-900">
-                              Pay in Person at Clinic
-                            </div>
-                            <div className="text-[11px] text-slate-500">
-                              Settle upon arrival or sample collection
-                            </div>
-                          </div>
-                        </button>
-                      </div>
+                  {/* Payment Method Selector */}
+                  <div className="mt-4 space-y-3">
+                    <div className="text-xs font-semibold text-slate-700">
+                      Select Payment Method for {pkg.title}:
                     </div>
-                  )}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setGroupPaymentMethod(pkg.groupType, "card")}
+                        className={`flex min-h-[44px] items-center gap-3 rounded-xl border p-3 text-left transition-all ${
+                          currentMethod === "card"
+                            ? "border-teal-600 bg-teal-50/70 ring-1 ring-teal-500"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <CreditCard className={`h-5 w-5 ${currentMethod === "card" ? "text-teal-600" : "text-slate-400"}`} />
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">
+                            Direct Online Card Payment
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Instant settlement in provider currency
+                          </div>
+                        </div>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setGroupPaymentMethod(pkg.groupType, "pay_at_clinic")}
+                        className={`flex min-h-[44px] items-center gap-3 rounded-xl border p-3 text-left transition-all ${
+                          currentMethod === "pay_at_clinic"
+                            ? "border-teal-600 bg-teal-50/70 ring-1 ring-teal-500"
+                            : "border-slate-200 bg-white hover:border-slate-300"
+                        }`}
+                      >
+                        <Building className={`h-5 w-5 ${currentMethod === "pay_at_clinic" ? "text-teal-600" : "text-slate-400"}`} />
+                        <div>
+                          <div className="text-xs font-bold text-slate-900">
+                            Pay in Person at Clinic
+                          </div>
+                          <div className="text-[11px] text-slate-500">
+                            Settle upon arrival or sample collection
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Partial Failure Alert with Retry Action */}
-                  {groupError && !completedOrder && (
+                  {groupError && (
                     <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-4">
                       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                         <div className="flex items-start gap-2.5">
@@ -697,7 +703,7 @@ export function CheckoutStepper() {
                             </h5>
                             <p className="text-xs text-rose-800 mt-0.5">{groupError}</p>
                             <p className="text-[11px] text-rose-700 mt-1">
-                              Other successful orders are safe and will not be re-billed. Retrying uses the original idempotency key to prevent double charges.
+                              Other successful orders are safe. Retrying reuses the idempotency key.
                             </p>
                           </div>
                         </div>
@@ -706,49 +712,11 @@ export function CheckoutStepper() {
                           type="button"
                           onClick={() => handleRetry(pkg)}
                           disabled={isRetrying}
-                          className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-rose-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-800 disabled:opacity-50 transition-colors"
+                          className="inline-flex min-h-[44px] shrink-0 items-center gap-2 rounded-xl bg-rose-700 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-rose-800 disabled:opacity-50 transition-colors"
                         >
                           <RotateCw className={`h-3.5 w-3.5 ${isRetrying ? "animate-spin" : ""}`} />
                           <span>{isRetrying ? "Retrying..." : "Retry This Order"}</span>
                         </button>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Completed Receipt Card */}
-                  {completedOrder && (
-                    <div className="mt-4 rounded-xl bg-white border border-emerald-200 p-4 text-xs space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">MedEx Order Reference:</span>
-                        <div className="flex items-center gap-1 font-mono font-bold text-slate-900">
-                          <span>{completedOrder.orderId}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopyOrderId(completedOrder.orderId)}
-                            className="p-1 hover:text-teal-600"
-                            title="Copy Order Reference"
-                          >
-                            {copiedOrderId === completedOrder.orderId ? (
-                              <Check className="h-3 w-3 text-emerald-600" />
-                            ) : (
-                              <Copy className="h-3 w-3 text-slate-400" />
-                            )}
-                          </button>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">Payment Method:</span>
-                        <span className="font-semibold text-slate-900 capitalize">
-                          {completedOrder.paymentMethod.replace("_", " ")} ({completedOrder.status})
-                        </span>
-                      </div>
-
-                      <div className="flex items-center justify-between">
-                        <span className="text-slate-600">Patient:</span>
-                        <span className="font-semibold text-slate-900">
-                          {completedOrder.patientDetails.fullName}
-                        </span>
                       </div>
                     </div>
                   )}
@@ -757,41 +725,36 @@ export function CheckoutStepper() {
             })}
           </div>
 
-          {/* Action Footer */}
+          {/* Action Footer with Realistic Simulated Loading Spinner */}
           <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
             <div className="text-xs text-slate-500">
-              Reload Safety: If you refresh this page, completed orders and active transactions are preserved.
+              Reload Safety: Completed orders and active sessions are preserved across browser refreshes.
             </div>
 
-            <div className="flex items-center gap-3">
-              {activePackages.some((p) => p.eligibleForCheckout && !orders[p.id]) ? (
-                <button
-                  type="button"
-                  onClick={handleExecuteCheckout}
-                  disabled={checkoutSession.isCheckingOut}
-                  className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-6 py-3 text-sm font-bold text-white shadow-md hover:bg-teal-700 disabled:opacity-50 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
-                >
-                  {checkoutSession.isCheckingOut ? (
-                    <>
-                      <RotateCw className="h-4 w-4 animate-spin" />
-                      <span>Executing Multi-Provider Orders...</span>
-                    </>
-                  ) : (
-                    <>
-                      <span>Confirm & Pay All Eligible Packages</span>
-                      <ArrowRight className="h-4 w-4" />
-                    </>
-                  )}
-                </button>
-              ) : (
-                <Link
-                  href="/cart"
-                  className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-5 py-2.5 text-xs font-bold text-slate-700 hover:bg-slate-50"
-                >
-                  <ShoppingBag className="h-4 w-4 text-teal-600" />
-                  <span>Return to Healthcare Cart</span>
-                </Link>
-              )}
+            <div className="flex items-center gap-3 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={handleExecuteCheckout}
+                disabled={isExecutingOrder || checkoutSession.isCheckingOut}
+                className="inline-flex min-h-[48px] w-full sm:w-auto items-center justify-center gap-2.5 rounded-xl bg-teal-600 px-7 py-3 text-sm font-bold text-white shadow-md hover:bg-teal-700 disabled:opacity-50 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500 active:scale-[0.99]"
+              >
+                {isExecutingOrder || checkoutSession.isCheckingOut ? (
+                  <>
+                    <RotateCw className="h-5 w-5 animate-spin" />
+                    <span>Processing Orders with Local Providers...</span>
+                  </>
+                ) : (
+                  <>
+                    <ShieldCheck className="h-4 w-4" />
+                    <span>
+                      {isolatedPackage
+                        ? `Place Order for ${isolatedPackage.title}`
+                        : `Confirm & Pay All Eligible Packages (${activePackages.length})`}
+                    </span>
+                    <ArrowRight className="h-4 w-4" />
+                  </>
+                )}
+              </button>
             </div>
           </div>
         </div>

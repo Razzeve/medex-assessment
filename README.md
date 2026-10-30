@@ -31,7 +31,7 @@ Visit the application at:
 
 ### Running Automated Unit Tests
 ```bash
-# Run all 28 unit tests (Task 1 pricing/facets + Task 2 split engine, merge, coupons, idempotency + Task 3 timezones, slots, buffers, overlaps)
+# Run all 36 unit tests across all 3 tasks
 npm test
 ```
 
@@ -57,31 +57,17 @@ medex-assessment/
 ├── src/
 │   ├── app/
 │   │   ├── api/
-│   │   │   ├── booking/
-│   │   │   │   ├── providers/route.ts      # Mock endpoint: GET /api/booking/providers (all providers + existingBooking)
-│   │   │   │   ├── providers/[providerId]/
-│   │   │   │   │   ├── route.ts            # Mock endpoint: GET /api/booking/providers/:id
-│   │   │   │   │   └── slots/route.ts      # Mock endpoint: GET /api/booking/providers/:id/slots (calendar & day slots)
-│   │   │   │   └── bookings/
-│   │   │   │       ├── route.ts            # Mock endpoint: POST /api/booking/bookings (201 / 409 conflict)
-│   │   │   │       └── [id]/route.ts       # Mock endpoint: PUT /api/booking/bookings/:id (reschedule 200 / 409)
-│   │   │   ├── cart/
-│   │   │   │   ├── route.ts                # Mock endpoint: GET /api/cart
-│   │   │   │   ├── items/[lineId]/route.ts # Mock endpoint: PATCH, DELETE /api/cart/items/:lineId
-│   │   │   │   └── merge/route.ts          # Mock endpoint: POST /api/cart/merge
+│   │   │   ├── booking/                    # Booking and scheduling API endpoints
+│   │   │   ├── cart/                       # Cart fetch, quantity sync, merge endpoints
 │   │   │   ├── checkout/route.ts           # Mock endpoint: POST /api/checkout (idempotency support)
 │   │   │   ├── orders/[orderId]/route.ts   # Mock endpoint: GET /api/orders/:orderId
 │   │   │   ├── category/active/route.ts    # Task 1 category route
 │   │   │   ├── providers/route.ts          # Task 1 providers route
 │   │   │   └── service/route.ts            # Task 1 service route
-│   │   ├── booking/
-│   │   │   └── page.tsx                    # Next.js App Router: Multi-Timezone Appointment Booking Page
-│   │   ├── cart/
-│   │   │   └── page.tsx                    # Next.js App Router: Cart Review & Split Packaging
-│   │   ├── checkout/
-│   │   │   └── page.tsx                    # Next.js App Router: 3-Step Checkout Flow
-│   │   ├── services/
-│   │   │   └── page.tsx                    # Task 1 Service Explorer Page
+│   │   ├── booking/page.tsx                # Next.js App Router: Multi-Timezone Appointment Booking Page
+│   │   ├── cart/page.tsx                   # Next.js App Router: Cart Review & Split Packaging
+│   │   ├── checkout/page.tsx               # Next.js App Router: Multi-Step Split Checkout Flow
+│   │   ├── services/page.tsx               # Task 1 Service Explorer Page
 │   │   ├── layout.tsx                      # Root layout with QueryProvider and Navbar
 │   │   └── page.tsx                        # Assessment overview dashboard
 │   ├── components/
@@ -90,35 +76,139 @@ medex-assessment/
 │   └── features/
 │       ├── service-explorer/               # Task 1 Domain Feature Boundary
 │       ├── cart-checkout/                  # Task 2 Domain Feature Boundary
+│       │   ├── types/index.ts              # Strict domain types: CartItem, CartGroup, SplitPackage, CheckoutOrder
+│       │   ├── utils/
+│       │   │   ├── split-engine.ts         # Group partitioning, currency isolation, delivery fee & blocking rules
+│       │   │   ├── currency.ts             # Multi-currency formatting, safe arithmetic, symbol mapping
+│       │   │   ├── coupons.ts              # Promo codes (MEDEX10, HEALTH500, FREESHIP) & fee waivers
+│       │   │   └── merge.ts                # Guest cart merge resolution algorithms
+│       │   ├── store/
+│       │   │   ├── useCartStore.ts         # Zustand store with reload persistence, optimistic sync & idempotency
+│       │   │   └── selectors.ts            # Reactive selectors: useSplitPackages, useCartSubtotals, useCartValidation
+│       │   ├── components/
+│       │   │   ├── CartView.tsx            # Responsive cart layout (flex-col lg:flex-row)
+│       │   │   ├── CartItemRow.tsx         # Item card with image/icon, 44px touch targets & inline removal confirm
+│       │   │   ├── CartItemList.tsx        # Semantic item list wrapper
+│       │   │   ├── VendorGroupCard.tsx     # Provider fulfillment card with discrete currency breakdown & isolated checkout
+│       │   │   ├── OrderSummary.tsx        # Sticky summary, voucher application, discrete settlement totals
+│       │   │   ├── CheckoutView.tsx        # Two-column layout, group-isolated breadcrumbs, mobile accordion summary
+│       │   │   ├── CheckoutStepper.tsx     # 3-step adaptive wizard (compact on mobile, full on desktop)
+│       │   │   ├── PatientDetailsForm.tsx  # Dynamic Step 2 validation (physical dispatch vs clinical lab rules)
+│       │   │   ├── PaymentConfirmation.tsx # Celebratory order success screen with copyable reference IDs & breakdown
+│       │   │   ├── EmptyCartState.tsx      # Zero-state view with icon, clear copy & "Explore Services" CTA
+│       │   │   ├── GuestCartMergeBanner.tsx# 4-scenario guest cart merge notification banner
+│       │   │   ├── CartSkeleton.tsx        # Loading skeleton matching layout geometry
+│       │   │   └── DevPanel.tsx            # Floating developer panel for error simulations & latency adjustments
+│       │   └── __tests__/
+│       │       ├── split-engine.test.ts    # Currency isolation, wellness unpriced handling, delivery fee rules
+│       │       ├── coupons.test.ts         # Multi-currency percentage & fixed discount tests
+│       │       ├── idempotency.test.ts     # Idempotent gateway replay & order persistence tests
+│       │       ├── merge.test.ts           # Guest cart merge overlap scenario tests
+│       │       └── checkout-audit.test.ts  # Audit tests: zero quantity removal, group recalculation, validation rules
 │       └── booking-scheduler/              # Task 3 Domain Feature Boundary
-│           ├── types/
-│           │   └── index.ts                # Strict domain types: Provider, Specialist, ScheduledSlot, DayAvailability, Booking
-│           ├── utils/
-│           │   ├── timezone.ts             # Timezone normalizer, offset math, 2-clock converter, cross-midnight boundary detector
-│           │   └── slots.ts                # Slot generator, provider hours overlap truncation, past slot filter, consecutive slots
-│           ├── services/
-│           │   ├── mock-db.ts              # In-memory mock server database with latency & 409 conflict simulator
-│           │   └── booking.service.ts      # Typed client API service wrapper
-│           ├── hooks/
-│           │   └── use-booking-scheduler.ts# React Query hooks for providers, 90-day calendar, day slots, booking & reschedule
-│           ├── components/
-│           │   ├── PractitionerCard.tsx    # Specialist profile, native timezone badge, hospital hours, overlap warning
-│           │   ├── TimezoneSelector.tsx    # Searchable patient timezone selector with live ticking dual-clocks & relative offset banner
-│           │   ├── DatePickerCarousel.tsx  # 90-day interactive date carousel with availability badges, week pagination & keyboard nav
-│           │   ├── SlotGrid.tsx            # Slots grouped into Morning/Afternoon/Evening with two-clock display on every card
-│           │   ├── GroupSizeSelector.tsx   # 1 to 4 people picker with consecutive slot & buffer guidance
-│           │   ├── ConflictResolutionBanner.tsx # Empathetic 409 conflict alert with preserved input state & closest slots
-│           │   ├── BookingConfirmationModal.tsx # Dual-timezone modal, patient contact inputs, reschedule delta comparison
-│           │   ├── DevPanel.tsx            # Floating developer panel (409 conflict, 500 error, offline, latency slider, provider switcher)
-│           │   └── BookingSchedulerView.tsx# Orchestrating view component
-│           └── __tests__/
-│               ├── timezone.test.ts        # Normalization of messy tz strings, country fallback, dual clock, cross-midnight day transition
-│               └── slots.test.ts           # Slot rule, Saturday hospital cutoff, Sunday closure, provider past cutoff, group consecutive slots
 ```
 
 ---
 
-## 3. Task 3: Architecture & Technical Decisions
+## 3. Task 2: Cart Split & Multi-Provider Checkout Flow (`/cart`, `/checkout`)
+
+### The Healthcare Marketplace Challenge
+In a cross-border healthcare marketplace like MedEx, a patient's cart often contains items sourced from diverse clinical organizations across Thailand (`THB`), Nepal (`NPR`), and India (`INR`). A monolithic single-invoice checkout fails in healthcare because:
+1. **Licensed Jurisdictional Billing**: Clinics bill in their domestic currencies under local regulatory compliance. Opaque conversion spreads confuse patients and breach local billing regulations.
+2. **Distinct Fulfillment Modalities**:
+   - **Home Lab Diagnostic Collection**: Dispatches a licensed phlebotomist to the patient's residence. Requires physical address validation and discrete collection/courier fees.
+   - **Hospital / Clinic Health Checks**: Issues a prioritized clinic check-in pass. Zero dispatch fees.
+   - **Spa & Wellness Treatments**: Requires duration selections (e.g. 60m vs 90m) to calculate service charge. Zero dispatch fees.
+   - **Digital Cover / Telehealth**: Instant electronic policy delivery to email. Zero dispatch fees.
+
+---
+
+### A. The Order Splitting Engine (`utils/split-engine.ts`)
+The split engine partitions the raw cart into autonomous `SplitPackage` structures:
+- **Zero Currency Conversion Spread**: Subtotals are tracked in isolated currency buckets (`Record<Currency, number>`). `THB`, `NPR`, and `INR` are never cross-converted or summed into a single meaningless number.
+- **Configured Fulfillment Rates & Free Tiers**:
+  - `lab_test`: Phlebotomist home dispatch charges THB 120, NPR 250, or INR 150. Free collection automatically applies when currency subtotal reaches threshold tiers (THB 3,000 / NPR 10,000 / INR 2,000).
+  - `wellness`, `package`, `service`, `insurance`: Strictly configured with 0 delivery fees.
+  - `FREESHIP` coupon waives all courier and home collection fees across all active currencies.
+- **Pre-Checkout Eligibility & Blocking Gates**:
+  - `isItemUnavailable`: Identifies discontinued services removed by providers and blocks package checkout until removed.
+  - `isItemWellnessUnpriced`: Prevents unpriced wellness items from progressing to checkout until a duration option is chosen.
+
+---
+
+### B. Group-Level Checkout Routing (`/checkout?group=[id]` vs `/checkout`)
+MedEx supports both unified checkout and isolated package settlement:
+- **Group-Isolated Checkout (`/checkout?group=[groupId]`)**:
+  - Users can click **"Checkout This Package"** on any provider card in `/cart` to settle only that package (e.g. `/checkout?group=lab_test`).
+  - Displays a clear breadcrumb and header: `Cart > All Packages > Checking out: [Package Name]` with a 1-click button to **"Checkout All Packages"**.
+  - Isolates calculation, patient validation, and order execution strictly to that package.
+  - Upon completion, other cart packages remain safely in the cart, and the confirmation screen prompts the user to continue checking out remaining packages.
+- **Unified Multi-Provider Checkout (`/checkout` without param)**:
+  - Consolidates all eligible packages for concurrent settlement.
+  - Provides a tabbed review bar (`All Packages`, `Home Lab Collection`, `Spa & Wellness`, etc.) so patients can inspect each package independently or review all simultaneously.
+- **Graceful Fallback**:
+  - If a user loads `/checkout?group=invalid` or visits a package that was already fulfilled, an empathetic alert explains the package is no longer pending and provides 1-click links to `/checkout` and `/cart`.
+
+---
+
+### C. State Resilience & Concurrency Safety (`useCartStore.ts`)
+- **Reload Safety (Crash & Refresh Resilience)**:
+  - Cart state, guest items, applied coupons, active checkout sessions, and completed orders are persisted in `localStorage` under `medex_cart_store_v1` using Zustand's `persist` middleware.
+  - Refreshing or closing the tab during any checkout step preserves form inputs and completed transaction records.
+- **Idempotency Protection**:
+  - Each split package receives a cryptographically safe idempotency key: `idemp_[groupType]_[timestamp]_[rand]`.
+  - Re-submitting or retrying a transaction reuses the exact key, guaranteeing providers never double-bill the patient.
+- **Optimistic Concurrency & Rollback**:
+  - Quantity modifications update the client store instantly for zero-latency feel.
+  - Monotonic sequence counters (`pendingLineUpdates`) verify server ACK ordering; network failures or 409 conflicts automatically roll back to the last confirmed server quantity with an informative toast notification.
+- **Partial Failure Recovery**:
+  - In unified checkout, if Provider A succeeds but Provider B's payment gateway times out (simulated via Dev Panel), Provider A's confirmed order is safely sealed and never re-charged.
+  - Provider B displays an alert with an inline **"Retry This Order"** action that reuses its stored idempotency key.
+
+---
+
+### D. Quantity & Zero-State Edge Cases
+- **Quantity Decrement at `quantity = 1`**:
+  - Clicking the minus button when quantity is 1 triggers an accessible inline confirmation prompt: `Remove "[Service Title]" from cart? [Yes, Remove] [Cancel]`.
+  - Confirming cleanly removes the item without NaN or zero-price anomalies.
+- **Empty Group Disappearance & Recalculation**:
+  - Deleting the last item in a fulfillment group automatically eliminates that group from `cart.groups`.
+  - Overall delivery fees, currency subtotals, and total payable amounts recalculate immediately.
+- **Empty Cart Zero-State**:
+  - If all items are deleted, the view displays a clean `EmptyCartState` with an icon, clear messaging, and a primary CTA: **"Explore Services"** linking back to `/services`.
+
+---
+
+### E. Form Validation & UX Polish on Checkout
+- **Sensible Step 2 Validation Rules**:
+  - **Physical Dispatches (Home Lab Sample Collection)**: Requires Street Address & Unit (`addressLine`), City (`city`), Contact Phone (`phone`), and Legal Recipient Name (`fullName`).
+  - **Clinical Consultations & Lab Panels**: Requires Legal Patient Name (`fullName`), Date of Birth (`dateOfBirth`), and Biological Sex (`gender`) for diagnostic reference ranges.
+  - **Digital Passes**: Requires valid email format and phone.
+- **Accessible Inline Errors**:
+  - Invalid inputs show `aria-invalid="true"` and `aria-describedby` with inline rose error messages. Progress to Step 3 is prevented until errors are corrected.
+- **Realistic 1–2s Simulated Authorization Spinner**:
+  - Clicking **"Place Order"** engages a realistic 1.2-second authorization spinner (`"Processing Orders with Local Providers..."`) before transitioning to the success state.
+- **Dedicated Payment Confirmation Screen (`PaymentConfirmation.tsx`)**:
+  - Celebratory success header with checkmark.
+  - 1-click copyable MedEx Order Reference ID (`MDX-ORD-...`).
+  - Itemized split breakdown showing provider details, items, fees, discounts, and native currency totals.
+  - Action buttons: **"Print Confirmation Pass"** (`window.print()`), **"Return to Healthcare Cart"**, and **"Explore More Services"**.
+
+---
+
+### F. Viewport & Mobile Responsiveness Audit
+- **`/cart`**:
+  - Stacks split groups and sticky Order Summary vertically on mobile screens (< 768px, `flex-col lg:flex-row`).
+  - Item rows wrap gracefully without horizontal scroll.
+  - Touch targets for quantity stepper (`-`, `+`) and remove buttons are strictly sized to at least **44x44px** (`min-h-[44px] min-w-[44px]`).
+- **`/checkout`**:
+  - **Adaptive Stepper**: Displays a compact 3-dot step counter on mobile screens (< 640px) to prevent crowded labels, and a full horizontal step bar on tablet/desktop.
+  - **Two-Column Layout**: Form inputs take full width on mobile. On desktop, renders an 8-col form column and 4-col sticky summary column.
+  - **Collapsible Mobile Accordion Summary Bar**: On screens < lg, a sticky accordion bar at the top allows patients to inspect package itemization and currency totals with a single tap.
+
+---
+
+## 4. Task 3: Booking & Multi-Timezone Scheduler (`/booking`)
 
 ### The Patient Story
 > *"I live in Kathmandu. I'm booking a check-up at a hospital in Bangkok for when I travel there next month. Which time is the appointment, mine or theirs?"*
@@ -192,20 +282,18 @@ If another patient takes a slot between selection and confirmation (or when 409 
 - An empathetic alert renders 1-click alternative buttons (e.g. *"Select 10:40 (Bangkok) / 08:45 (Kathmandu)"*), allowing instantaneous recovery without restarting the flow.
 
 ### I. Developer & Evaluator Dev Panel
-A floating **Task 3 Dev Panel** in the bottom-right corner provides immediate testing controls:
-- **Provider Switcher**: Switch between Bangkok, Kathmandu, Pokhara, Lumbini, and Gurgaon.
-- **Reschedule Flow Toggle**: Toggles modifying `BK-20261008-0042`.
+A floating **Task 2 & 3 Dev Panel** in the bottom-right corner provides immediate testing controls:
+- **Simulate Gateway Errors**: Fail next checkout, simulate partial failure on 2nd provider group, fail quantity update.
 - **Simulate 409 Conflict**: Tests slot contention recovery and closest alternative recommendations.
-- **Simulate 500 Error**: Tests API failure banner and inline retry button.
-- **Simulate Offline Mode**: Validates offline warnings and booking confirmation prevention.
+- **Simulate Offline Mode**: Validates offline warnings and transaction prevention.
 - **Artificial Latency Slider**: 0ms to 2000ms.
-- **Reset Database**: Restores the dataset back to initial state.
+- **Reset Database**: Restores the cart and booking state back to pristine sample data.
 
 ---
 
-## 4. Test Suite Summary
+## 5. Test Suite Summary
 
-The automated unit test suite covers 28 comprehensive test cases across all tasks:
+The automated unit test suite covers 36 comprehensive test cases across all tasks:
 
 ```
 > medex-assessment@0.1.0 test
@@ -221,6 +309,11 @@ The automated unit test suite covers 28 comprehensive test cases across all task
 ✔ Timezone Normalizer - Handles all messy dataset strings
 ✔ Timezone Differential & Explanations
 ✔ Two Clocks & Cross-Midnight Boundary Calculation
+✔ Checkout Audit - FREESHIP coupon waives delivery fees across provider currencies
+✔ Checkout Audit - Currency formatter handles lowercase strings and decimal formatting
+✔ Checkout Audit - Empty group disappears and recalculates total metrics
+✔ Checkout Audit - Group-isolated checkout correctly isolates single package
+✔ Checkout Audit - Patient Details Validation logic distinguishes Physical vs Consultation items
 ✔ Coupons - Percentage discount applied across multiple currencies
 ✔ Coupons - Fixed discount clamped to prevent negative balance
 ✔ Coupons - Rejects invalid promo code with helpful error
@@ -234,18 +327,21 @@ The automated unit test suite covers 28 comprehensive test cases across all task
 ✔ Facets - Disambiguation of categories sharing the ultrasound slug
 ✔ Facets - Multi-currency price isolation (never mix THB and NPR)
 ✔ Grouping - Services grouped by provider with correct active filter count
+✔ Task 1: DEFAULT_FILTER_STATE provides a clean baseline
+✔ Task 1: Cart item addition & split engine normalization
+✔ Task 1: Wellness items without selected duration remain unpriced until chosen
 ✔ Pricing - Standard percentage discount and percentage service charge
 ✔ Pricing - Flat amount discount and flat amount service charge
 ✔ Pricing - Awkward data case: discount exceeds price (clamped to prevent negative)
 ✔ Pricing - Zero price service (Free Consultation)
 ✔ Pricing - Wellness service duration options & lowest option detection
 
-28 passing (100% test pass rate)
+36 passing (100% test pass rate)
 ```
 
 ---
 
-## 5. Trade-offs Accepted & Deliberate Exclusions
+## 6. Trade-offs Accepted & Deliberate Exclusions
 
 1. **In-Memory Mock State vs. Persistent Database**:
    - *Decision*: Next.js API routes store active appointments in memory with dynamic `dayOffset` initialization.
@@ -259,7 +355,7 @@ The automated unit test suite covers 28 comprehensive test cases across all task
 
 ---
 
-## 6. Future Production Enhancements
+## 7. Future Production Enhancements
 
 1. **Calendar Sync Integrations (iCal / Google Calendar / Outlook)**:
    - Direct download of `.ics` files and one-click "Add to Google Calendar" buttons embedding dual-timezone start/end times and hospital address maps.
@@ -272,9 +368,9 @@ The automated unit test suite covers 28 comprehensive test cases across all task
 
 ---
 
-## 7. AI Tool Disclosure
+## 8. AI Tool Disclosure
 
 As required by the assessment brief:
 - **AI Tool Used**: Antigravity Assistant (Google DeepMind agentic coding model).
-- **Usage Area**: Assisted in generating TypeScript domain models matching `task3-booking.json`, crafting regex patterns for free-text timezone normalization, generating unit test suites for edge cases, and authoring accessible UI components according to MedEx design tokens.
-- All code, business rules, timezone conversion algorithms, and architectural choices have been reviewed, tested, and can be fully explained during the technical interview.
+- **Usage Area**: Assisted in generating TypeScript domain models matching `task2-cart.json` and `task3-booking.json`, crafting regex patterns for free-text timezone normalization, generating unit test suites for edge cases, and authoring accessible UI components according to MedEx design tokens.
+- All code, business rules, timezone conversion algorithms, order splitting logic, and architectural choices have been reviewed, tested, and can be fully explained during the technical interview.

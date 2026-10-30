@@ -47,10 +47,10 @@ export function CartView() {
           actions={
             <Link
               href="/services"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-teal-700 hover:border-teal-300 transition-colors"
+              className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-teal-700 hover:border-teal-300 transition-colors"
             >
               <span>Add More Services</span>
-              <ArrowRight className="h-3.5 w-3.5" />
+              <ArrowRight className="h-4 w-4" />
             </Link>
           }
         />
@@ -73,7 +73,7 @@ export function CartView() {
         <button
           type="button"
           onClick={() => fetchCart(true)}
-          className="mt-6 inline-flex items-center gap-2 rounded-lg bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
+          className="mt-6 inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white hover:bg-teal-700 transition-colors"
         >
           <RotateCcw className="h-4 w-4" />
           <span>Retry Connection</span>
@@ -102,10 +102,10 @@ export function CartView() {
           <button
             type="button"
             onClick={clearNotification}
-            className="rounded p-1 hover:bg-black/5 transition-colors"
+            className="min-h-[44px] min-w-[44px] -m-2 flex items-center justify-center rounded p-1 hover:bg-black/5 transition-colors"
             aria-label="Dismiss toast"
           >
-            <X className="h-3.5 w-3.5" />
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -122,31 +122,31 @@ export function CartView() {
         actions={
           <Link
             href="/services"
-            className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-teal-700 hover:border-teal-300 transition-colors"
+            className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 shadow-2xs hover:bg-slate-50 hover:text-teal-700 hover:border-teal-300 transition-colors"
           >
             <span>Add More Services</span>
-            <ArrowRight className="h-3.5 w-3.5" />
+            <ArrowRight className="h-4 w-4" />
           </Link>
         }
       />
 
-      <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
         {/* Guest Cart Merge Banner */}
         <GuestCartMergeBanner />
 
-        {/* Main Content Area */}
+        {/* Main Content Area: flex-col on mobile (< 768px), lg:flex-row on desktop */}
         {isEmpty ? (
           <EmptyCartState />
         ) : (
-          <div className="grid grid-cols-1 gap-8 lg:grid-cols-12 items-start">
-            {/* Split Packages Column (8 Cols) */}
-            <div className="lg:col-span-8 space-y-6">
+          <div className="flex flex-col lg:flex-row gap-8 items-start">
+            {/* Split Packages Column (Stacked vertically on mobile, 8/12 on desktop) */}
+            <div className="w-full lg:w-8/12 space-y-6">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
+                <h2 className="text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider flex items-center gap-2">
                   <Layers className="h-4 w-4 text-teal-600" />
                   Split Fulfillment Groups ({packages.length})
                 </h2>
-                <span className="text-xs text-slate-500 font-medium">
+                <span className="text-xs text-slate-500 font-medium hidden sm:inline">
                   Autonomous provider routing
                 </span>
               </div>
@@ -156,8 +156,8 @@ export function CartView() {
               ))}
             </div>
 
-            {/* Order Summary Sticky Column (4 Cols) */}
-            <div className="lg:col-span-4">
+            {/* Order Summary Column (Stacked below on mobile, sticky 4/12 on desktop) */}
+            <div className="w-full lg:w-4/12">
               <OrderSummary />
             </div>
           </div>

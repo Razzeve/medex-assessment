@@ -17,7 +17,9 @@ export function formatCurrency(amount: number, currency: Currency | string): str
     maximumFractionDigits: 2,
   }).format(safeAmount);
 
-  switch (currency) {
+  const upperCur = (currency || "").toUpperCase();
+
+  switch (upperCur) {
     case "THB":
       return `฿${formattedNumber}`;
     case "NPR":
@@ -33,7 +35,9 @@ export function formatCurrency(amount: number, currency: Currency | string): str
  * Formats a dictionary of subtotals in multiple currencies.
  * Returns an array of human-readable currency strings: e.g. ["฿1,677", "NPR 12,520"]
  */
-export function formatSubtotals(subtotals: Record<string, number>): { currency: string; amount: number; formatted: string }[] {
+export function formatSubtotals(
+  subtotals: Record<string, number>
+): { currency: string; amount: number; formatted: string }[] {
   return Object.entries(subtotals)
     .filter(([, amount]) => typeof amount === "number" && !isNaN(amount) && amount > 0)
     .map(([currency, amount]) => ({
@@ -49,4 +53,3 @@ export function formatSubtotals(subtotals: Record<string, number>): { currency: 
 export function addMoney(a: number, b: number): number {
   return Math.round((a + b) * 100) / 100;
 }
-

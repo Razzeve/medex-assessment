@@ -7,6 +7,7 @@ import {
   X,
   Truck,
   Layers,
+  ShieldCheck,
 } from "lucide-react";
 import { formatCurrency, formatSubtotals } from "../utils/currency";
 import {
@@ -32,7 +33,7 @@ export function OrderSummary() {
   const [couponError, setCouponError] = useState<string | null>(null);
 
   const subtotalEntries = formatSubtotals(subtotals);
-  const discounts = calculateDiscount(appliedCoupon, subtotals);
+  const discounts = calculateDiscount(appliedCoupon, subtotals, deliveryFees);
 
   // Compute final totals per currency
   const currencies = Array.from(
@@ -60,18 +61,18 @@ export function OrderSummary() {
   };
 
   return (
-    <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sticky top-20 space-y-6">
+    <div className="rounded-2xl border border-slate-200 bg-white p-5 sm:p-6 shadow-xs lg:sticky lg:top-20 space-y-6">
       {/* Header */}
       <div>
         <h3 className="text-lg font-bold text-slate-900 tracking-tight flex items-center justify-between">
           <span>Order Summary</span>
           <span className="inline-flex items-center gap-1 rounded-full bg-teal-50 px-2.5 py-0.5 text-xs font-semibold text-teal-700">
             <Layers className="h-3 w-3" />
-            {packages.length} Split Packages
+            {packages.length} Split {packages.length === 1 ? "Package" : "Packages"}
           </span>
         </h3>
-        <p className="mt-1 text-xs text-slate-500">
-          Individual provider settlement breakdown
+        <p className="mt-1 text-xs text-slate-500 font-medium">
+          Multi-provider settlement breakdown
         </p>
       </div>
 
@@ -99,20 +100,20 @@ export function OrderSummary() {
         <div className="flex items-center justify-between text-xs font-semibold text-slate-500 uppercase tracking-wider">
           <span className="flex items-center gap-1.5">
             <Truck className="h-3.5 w-3.5 text-slate-400" />
-            Fulfillment & Sample Dispatch
+            Fulfillment &amp; Sample Dispatch
           </span>
         </div>
         {currencies.map((cur) => {
           const fee = deliveryFees[cur] ?? 0;
           return (
             <div key={cur} className="flex items-center justify-between text-sm">
-              <span className="text-slate-600">{cur} Fulfillment</span>
+              <span className="text-slate-600 font-medium">{cur} Fulfillment</span>
               {fee > 0 ? (
                 <span className="font-semibold text-slate-900">
                   {formatCurrency(fee, cur)}
                 </span>
               ) : (
-                <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">
+                <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-md border border-emerald-200">
                   Free
                 </span>
               )}
@@ -124,21 +125,22 @@ export function OrderSummary() {
       {/* Discounts Breakdown */}
       {appliedCoupon && (
         <div className="space-y-2 border-t border-slate-100 pt-4">
-          <div className="flex items-center justify-between text-xs font-semibold text-teal-700 uppercase tracking-wider">
+          <div className="flex items-center justify-between text-xs font-bold text-teal-700 uppercase tracking-wider">
             <span>Promo Discount ({appliedCoupon.code})</span>
             <button
               type="button"
               onClick={removeCoupon}
-              className="text-slate-400 hover:text-rose-600 transition-colors"
+              className="min-h-[44px] min-w-[44px] -mr-2 flex items-center justify-center text-slate-400 hover:text-rose-600 transition-colors"
               title="Remove promo code"
+              aria-label="Remove promo code"
             >
-              <X className="h-3.5 w-3.5" />
+              <X className="h-4 w-4" />
             </button>
           </div>
           {Object.entries(discounts).map(([cur, amount]) => (
-            <div key={cur} className="flex items-center justify-between text-sm text-teal-700">
+            <div key={cur} className="flex items-center justify-between text-sm text-teal-700 font-medium">
               <span>{cur} Savings</span>
-              <span className="font-semibold">- {formatCurrency(amount, cur)}</span>
+              <span className="font-bold">- {formatCurrency(amount, cur)}</span>
             </div>
           ))}
         </div>
@@ -158,11 +160,11 @@ export function OrderSummary() {
               value={couponInput}
               onChange={(e) => setCouponInput(e.target.value)}
               placeholder="e.g. MEDEX10"
-              className="flex-1 rounded-lg border border-slate-300 px-3 py-1.5 text-xs text-slate-900 uppercase placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
+              className="flex-1 min-h-[44px] rounded-xl border border-slate-300 px-3 py-2 text-xs text-slate-900 uppercase placeholder:text-slate-400 focus:border-teal-500 focus:outline-none focus:ring-1 focus:ring-teal-500"
             />
             <button
               type="submit"
-              className="rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-semibold text-white hover:bg-slate-800 transition-colors"
+              className="min-h-[44px] rounded-xl bg-slate-900 px-4 py-2 text-xs font-bold text-white hover:bg-slate-800 transition-colors shrink-0"
             >
               Apply
             </button>
@@ -174,17 +176,17 @@ export function OrderSummary() {
       </div>
 
       {/* Final Settlement Total */}
-      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2">
+      <div className="rounded-xl bg-slate-50 border border-slate-200 p-4 space-y-2.5">
         <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
           Total Payable by Currency
         </div>
-        <div className="space-y-1.5">
+        <div className="space-y-2">
           {currencies.map((cur) => {
             const amount = finalTotals[cur] || 0;
             return (
               <div key={cur} className="flex items-center justify-between">
                 <span className="text-xs font-bold text-slate-700">{cur} Settlement:</span>
-                <span className="text-base font-extrabold text-slate-900">
+                <span className="text-base sm:text-lg font-extrabold text-slate-900">
                   {formatCurrency(amount, cur)}
                 </span>
               </div>
@@ -192,19 +194,19 @@ export function OrderSummary() {
           })}
         </div>
         <p className="text-[10px] text-slate-500 pt-1 leading-normal">
-          * Each provider is billed in their local currency. Amounts are not combined.
+          * Each provider is billed in their local currency. Amounts are never cross-converted.
         </p>
       </div>
 
       {/* Warnings & CTA */}
       <div className="space-y-3">
         {hasUnavailable && (
-          <p className="text-xs text-rose-600 font-medium">
+          <p className="text-xs text-rose-600 font-semibold bg-rose-50 border border-rose-200 p-2.5 rounded-lg">
             Please remove discontinued items before checking out.
           </p>
         )}
         {hasUnpriced && (
-          <p className="text-xs text-amber-700 font-medium">
+          <p className="text-xs text-amber-800 font-semibold bg-amber-50 border border-amber-200 p-2.5 rounded-lg">
             Please select duration options for all wellness services.
           </p>
         )}
@@ -212,9 +214,9 @@ export function OrderSummary() {
         <Link
           href={canCheckoutAny ? "/checkout" : "#"}
           aria-disabled={!canCheckoutAny}
-          className={`flex w-full items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold shadow-md transition-all ${
+          className={`flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-bold shadow-md transition-all ${
             canCheckoutAny
-              ? "bg-teal-600 text-white hover:bg-teal-700 shadow-teal-600/20"
+              ? "bg-teal-600 text-white hover:bg-teal-700 shadow-teal-600/20 active:scale-[0.99]"
               : "bg-slate-200 text-slate-400 cursor-not-allowed shadow-none"
           }`}
         >
@@ -234,6 +236,10 @@ export function OrderSummary() {
           Nepal (NPR), and India (INR). To avoid opaque currency conversion spreads, each package is
           settled directly with the provider in their licensed jurisdiction.
         </p>
+        <div className="pt-1 flex items-center gap-1 text-[10px] font-semibold text-teal-900">
+          <ShieldCheck className="h-3 w-3 text-teal-600" />
+          <span>Protected by Idempotent Gateway Retries</span>
+        </div>
       </div>
     </div>
   );

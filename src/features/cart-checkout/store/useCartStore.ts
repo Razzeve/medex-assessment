@@ -259,6 +259,12 @@ export const useCartStore = create<CartStoreState>()(
         const { cart, confirmedQuantities, devSettings, pendingLineUpdates } = get();
         if (!cart) return;
 
+        // If target quantity is 0 or less, cleanly remove item
+        if (targetQuantity <= 0) {
+          await get().removeItem(lineId);
+          return;
+        }
+
         const nextQuantity = Math.max(1, targetQuantity);
         const seq = (pendingLineUpdates[lineId] || 0) + 1;
 
@@ -551,7 +557,7 @@ export const useCartStore = create<CartStoreState>()(
             set({ devSettings: { ...devSettings, failNextCheckout: false } });
           }
 
-          const discounts = calculateDiscount(appliedCoupon, pkg.subtotals);
+          const discounts = calculateDiscount(appliedCoupon, pkg.subtotals, pkg.deliveryFees);
           const finalTotals: Record<string, number> = {};
           for (const [cur, total] of Object.entries(pkg.totalAmounts)) {
             const disc = discounts[cur] || 0;

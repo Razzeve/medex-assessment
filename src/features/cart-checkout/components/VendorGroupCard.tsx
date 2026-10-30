@@ -9,9 +9,10 @@ import {
   Clock,
   AlertTriangle,
   ArrowRight,
+  PackageCheck,
 } from "lucide-react";
 import { SplitPackage } from "../types";
-import { CartItemRow } from "./CartItemRow";
+import { CartItemList } from "./CartItemList";
 import { formatCurrency, formatSubtotals } from "../utils/currency";
 
 interface VendorGroupCardProps {
@@ -70,18 +71,18 @@ export function VendorGroupCard({
 
   return (
     <section
-      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm transition-all hover:shadow-md"
+      className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs transition-all hover:shadow-md"
       aria-labelledby={`heading-${groupType}`}
     >
       {/* Group Header */}
-      <div className="border-b border-slate-100 bg-slate-50/70 p-5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="border-b border-slate-100 bg-slate-50/70 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3.5">
         <div className="flex items-start gap-3.5">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white shadow-xs border border-slate-200">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-white shadow-2xs border border-slate-200">
             {getGroupIcon()}
           </div>
           <div>
             <div className="flex items-center gap-2 flex-wrap">
-              <h3 id={`heading-${groupType}`} className="font-bold text-slate-900 text-base">
+              <h3 id={`heading-${groupType}`} className="font-bold text-slate-900 text-base sm:text-lg">
                 {badgeLabel}
               </h3>
               <span
@@ -91,32 +92,30 @@ export function VendorGroupCard({
               </span>
             </div>
             <p className="mt-0.5 text-xs text-slate-500 font-medium">
-              Provider: <span className="text-slate-800">{providerName}</span>
+              Provider: <span className="text-slate-800 font-semibold">{providerName}</span>
             </p>
           </div>
         </div>
 
         {/* Fulfillment Timeline */}
-        <div className="mt-3 sm:mt-0 flex items-center gap-1.5 text-xs text-slate-600 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shrink-0">
-          <Clock className="h-3.5 w-3.5 text-teal-600" />
+        <div className="inline-flex items-center gap-1.5 text-xs text-slate-700 font-medium bg-white px-3 py-1.5 rounded-lg border border-slate-200 shrink-0 self-start sm:self-auto">
+          <Clock className="h-3.5 w-3.5 text-teal-600 shrink-0" />
           <span>{estimatedTimeline}</span>
         </div>
       </div>
 
-      {/* Items List */}
-      <div className="p-5 space-y-3">
-        {items.map((item, idx) => (
-          <CartItemRow key={item.id} item={item} itemIndex={idx} />
-        ))}
+      {/* Items List via dedicated CartItemList */}
+      <div className="p-4 sm:p-5">
+        <CartItemList items={items} />
       </div>
 
       {/* Blocking Warnings */}
       {blockingReasons.length > 0 && (
-        <div className="mx-5 mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5">
+        <div className="mx-4 sm:mx-5 mb-4 rounded-xl border border-amber-200 bg-amber-50/80 p-3.5">
           <div className="flex items-start gap-2.5">
             <AlertTriangle className="h-4 w-4 text-amber-600 mt-0.5 shrink-0" />
             <div className="text-xs text-amber-800">
-              <span className="font-semibold">Action required before checkout:</span>
+              <span className="font-semibold">Action required before package checkout:</span>
               <ul className="mt-1 list-disc list-inside space-y-0.5 font-medium">
                 {blockingReasons.map((reason, i) => (
                   <li key={i}>{reason}</li>
@@ -128,11 +127,11 @@ export function VendorGroupCard({
       )}
 
       {/* Subtotal & Routing Footer */}
-      <div className="border-t border-slate-100 bg-slate-50/50 p-5 sm:flex sm:items-center sm:justify-between sm:gap-4">
+      <div className="border-t border-slate-100 bg-slate-50/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         {/* Discrete Multi-Currency Breakdown */}
         <div className="space-y-1">
           <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">
-            Package Subtotal ({packageData.items.reduce((acc, i) => acc + (i.quantity || 1), 0)} items):
+            Package Subtotal ({items.reduce((acc, i) => acc + (i.quantity || 1), 0)} items):
           </div>
 
           {subtotalList.length > 0 ? (
@@ -143,13 +142,13 @@ export function VendorGroupCard({
                 return (
                   <div
                     key={currency}
-                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-xs shadow-2xs"
+                    className="inline-flex flex-wrap items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs shadow-2xs"
                   >
-                    <span className="font-bold text-slate-900">
+                    <span className="font-bold text-slate-900 text-sm">
                       {formatCurrency(amount, currency)}
                     </span>
                     {deliveryFee > 0 ? (
-                      <span className="text-[11px] text-slate-500">
+                      <span className="text-[11px] text-slate-600 font-medium">
                         (+ {formatCurrency(deliveryFee, currency)} collection)
                       </span>
                     ) : (
@@ -162,28 +161,30 @@ export function VendorGroupCard({
               })}
             </div>
           ) : (
-            <div className="text-xs font-medium text-amber-700">
+            <div className="text-xs font-semibold text-amber-700">
               {hasUnpricedItems ? "Price pending selection" : "No priced items"}
             </div>
           )}
         </div>
 
-        {/* Action Button */}
+        {/* Action Button: Minimum 44px touch target */}
         {showCheckoutAction && (
-          <div className="mt-4 sm:mt-0 flex items-center gap-3">
+          <div className="flex items-center gap-3">
             {eligibleForCheckout ? (
               <Link
                 href={`/checkout?group=${groupType}`}
-                className="inline-flex items-center gap-2 rounded-lg bg-teal-600 px-4 py-2 text-xs font-semibold text-white shadow-sm hover:bg-teal-700 transition-colors focus:outline-none focus:ring-2 focus:ring-teal-500"
+                className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-xs font-bold text-white shadow-2xs hover:bg-teal-700 transition-all focus:outline-none focus:ring-2 focus:ring-teal-500"
+                aria-label={`Checkout ${badgeLabel} package individually`}
               >
+                <PackageCheck className="h-4 w-4" />
                 <span>Checkout This Package</span>
-                <ArrowRight className="h-3.5 w-3.5" />
+                <ArrowRight className="h-4 w-4" />
               </Link>
             ) : (
               <button
                 type="button"
                 disabled
-                className="inline-flex items-center gap-2 rounded-lg bg-slate-200 px-4 py-2 text-xs font-medium text-slate-500 cursor-not-allowed"
+                className="inline-flex min-h-[44px] w-full sm:w-auto items-center justify-center gap-2 rounded-xl bg-slate-200 px-5 py-2.5 text-xs font-semibold text-slate-500 cursor-not-allowed"
                 title="Resolve duration or remove discontinued items to checkout"
               >
                 <span>Resolve Items to Checkout</span>

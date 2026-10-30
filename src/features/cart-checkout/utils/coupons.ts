@@ -35,7 +35,7 @@ export function validateCoupon(code: string): {
   if (!coupon) {
     return {
       valid: false,
-      message: `Promo code "${code}" is invalid or expired. Try MEDEX10 or HEALTH500`,
+      message: `Promo code "${code}" is invalid or expired. Try MEDEX10, HEALTH500, or FREESHIP`,
     };
   }
 
@@ -48,10 +48,12 @@ export function validateCoupon(code: string): {
 
 /**
  * Calculates discount amount per currency.
+ * Supports percentage discounts, fixed discounts, and FREESHIP courier waivers.
  */
 export function calculateDiscount(
   coupon: CouponDiscount | null,
-  subtotals: Record<string, number>
+  subtotals: Record<string, number>,
+  deliveryFees?: Record<string, number>
 ): Record<string, number> {
   if (!coupon) return {};
   const discounts: Record<string, number> = {};
@@ -65,9 +67,20 @@ export function calculateDiscount(
       const fixed = coupon.fixedDiscounts[cur] || 0;
       // Do not exceed the subtotal
       discounts[currency] = Math.min(subtotal, fixed);
+    } else if (coupon.code === "FREESHIP" && deliveryFees) {
+      const fee = deliveryFees[currency] || 0;
+      discounts[currency] = fee;
+    }
+  }
+
+  // Handle case where currency has delivery fee but no subtotal (e.g. edge cases)
+  if (coupon.code === "FREESHIP" && deliveryFees) {
+    for (const [currency, fee] of Object.entries(deliveryFees)) {
+      if (discounts[currency] === undefined) {
+        discounts[currency] = fee;
+      }
     }
   }
 
   return discounts;
 }
-
